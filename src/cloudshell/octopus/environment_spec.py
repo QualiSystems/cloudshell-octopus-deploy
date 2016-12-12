@@ -1,4 +1,4 @@
-class Environment:
+class EnvironmentSpec:
     def __init__(self, name, description, sort_order, use_guided_failure=False):
         """
         :param name: The name of this environment. This should be short, preferably 5-20 characters.
@@ -47,7 +47,7 @@ class Environment:
     def validate(self):
         if not self._name or \
                         len(self._name) > 20 or len(self._name) < 5:
-            raise ValueError('Environment name must be between 5 and 20 characters')
+            raise ValueError('EnvironmentSpec name must be between 5 and 20 characters')
 
         return True
 
