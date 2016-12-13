@@ -40,7 +40,8 @@ class OctopusDeployTest(unittest.TestCase):
 
     def test_create_machine(self):
         self.DEPLOYED_ENV = self._given_an_environment_exists_on_octopus()
-        machine_spec = MachineSpec(name='machine_name',
+        machine_spec = \
+            MachineSpec(name='machine_name',
                                    roles=['role1', 'role2'],
                                    thumbprint=THUMBPRINT,
                                    uri=TENTACLE_SERVER,
