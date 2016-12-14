@@ -92,3 +92,4 @@ ENV/
 
 .idea/*
 /src/tests/context.py
+/src/dist/

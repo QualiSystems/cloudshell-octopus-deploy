@@ -1,4 +1,4 @@
-from cloudshell.octopus.environment_spec import EnvironmentSpec
+from cloudshell_demos.octopus.environment_spec import EnvironmentSpec
 import requests
 import json
 from urlparse import urljoin
@@ -6,6 +6,8 @@ import urllib
 import time
 
 import ssl
+import copy
+
 VALIDATE_TENTACLE_CONTEXT = ssl._create_unverified_context()
 
 
@@ -36,18 +38,19 @@ class OctopusServer:
 
     def create_environment(self, environment_spec):
         """
-        :type environment_spec: cloudshell.octopus.environment_spec.EnvironmentSpec
+        :type environment_spec: cloudshell_demos.octopus.environment_spec.EnvironmentSpec
         :return:
         """
+        env = copy.deepcopy(environment_spec)
         api_url = urljoin(self.host, '/api/environments')
-        result = requests.post(api_url, params={'ApiKey': self._api_key}, json=environment_spec.json)
+        result = requests.post(api_url, params={'ApiKey': self._api_key}, json=env.json)
         self._valid_status_code(result, 'Failed to deploy environment; error: {0}'.format(result.text))
-        environment_spec.set_id(json.loads(result.content)['Id'])
-        return environment_spec
+        env.set_id(json.loads(result.content)['Id'])
+        return env
 
     def create_machine(self, machine_spec):
         """
-        :type machine_spec: cloudshell.octopus.machine_spec.MachineSpec
+        :type machine_spec: cloudshell_demos.octopus.machine_spec.MachineSpec
         :return:
         """
         self._validate_tentacle_uri(machine_spec.uri)
@@ -57,9 +60,20 @@ class OctopusServer:
         machine_spec.set_id(json.loads(result.content)['Id'])
         return machine_spec
 
+    def add_existing_machine_to_environment(self, machine_id, environment_id):
+        api_url = urljoin(self.host, '/api/machines/{0}'.format(machine_id))
+        result = requests.get(api_url, params={'ApiKey': self._api_key})
+        existing_machine = json.loads(result.text)
+        existing_machine['EnvironmentIds'].append(environment_id)
+        result = requests.put(api_url, params={'ApiKey': self._api_key}, json=existing_machine)
+        self._valid_status_code(result,
+                                'Failed to add existing machine with id {0} to environment {1}.'
+                                '\nError: {2}'.format(machine_id, environment_id, result.text))
+        return True
+
     def create_release(self, release_spec):
         """
-        :type release_spec: cloudshell.octopus.release_spec.ReleaseSpec
+        :type release_spec: cloudshell_demos.octopus.release_spec.ReleaseSpec
         :return:
         """
         api_url = urljoin(self.host, '/api/releases')
@@ -70,8 +84,8 @@ class OctopusServer:
 
     def deploy_release(self, release_spec, environment_spec):
         """
-        :param release_spec: cloudshell.octopus.release_spec.ReleaseSpec
-        :type environment_spec: cloudshell.octopus.environment_spec.EnvironmentSpec
+        :param release_spec: cloudshell_demos.octopus.release_spec.ReleaseSpec
+        :type environment_spec: cloudshell_demos.octopus.environment_spec.EnvironmentSpec
         :return:
         """
         api_url = urljoin(self.host, '/api/deployments')
@@ -124,6 +138,13 @@ class OctopusServer:
         else:
             # EnvironmentSpec has no id, maybe you haven't deployed it yet?
             return False
+
+    def machine_exists_on_environment(self, machine_id, environment_id):
+        api_url = urljoin(self.host, '/api/machines/{0}'.format(machine_id))
+        result = requests.get(api_url, params={'ApiKey': self._api_key})
+        self._valid_status_code(result, 'Machine with id {1} not found; error: {0}'.format(result.text, machine_id))
+        machine = json.loads(result.text)
+        return True if environment_id in machine['EnvironmentIds'] else False
 
     def release_exists(self, release_spec):
         if hasattr(release_spec, 'id'):

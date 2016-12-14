@@ -1,0 +1,8 @@
+<Driver Description="Describe the purpose of your CloudShell shell" MainClass="driver.OctopusDeployOrchestratorDriver" Name="CloudshellAzureMediaServicesDriver" Version="1.0.0">
+    <Layout>
+        <!--<Category Name="Hidden Commands">-->
+            <Command Description="..." Name="create_environment" DisplayName="Create Octopus Environment" />
+            <Command Description="..." Name="add_existing_machine_to_environment" DisplayName="Add Existing Machine To Environment" />
+        <!--</Category>-->
+    </Layout>
+</Driver>

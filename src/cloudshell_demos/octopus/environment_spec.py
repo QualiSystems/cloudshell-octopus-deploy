@@ -53,3 +53,12 @@ class EnvironmentSpec:
 
     def set_id(self, id):
         self.id = id
+
+    @staticmethod
+    def from_dict(environment_dict):
+        a = EnvironmentSpec(environment_dict['_name'],
+                            environment_dict['_description'],
+                            environment_dict['_sort_order'],
+                            environment_dict['_use_guided_failure'])
+        a.id = environment_dict['id']
+        return a
