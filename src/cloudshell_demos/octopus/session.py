@@ -169,6 +169,61 @@ class OctopusServer:
             # EnvironmentSpec has no id, maybe you haven't deployed it yet?
             return False
 
+    def create_lifecycle(self, lifecyle_name, lifecycle_description, environment_spec):
+        """
+        :type environment_spec: cloudshell_demos.octopus.machine_spec.EnvironmentSpec
+        :return:
+        """
+        lifecycle = {
+            'Name': lifecyle_name,
+            'Description': lifecycle_description,
+            'Phases': [{
+                'Name': 'Cloudshell Sandbox Phase',
+                'AutomaticDeploymentTargets': [environment_spec.name]
+            }]
+        }
+        api_url = urljoin(self.host, '/api/lifecycles')
+        result = requests.post(api_url, params={'ApiKey': self._api_key}, json=lifecycle)
+        self._valid_status_code(result, 'Failed to create lifecycle; error: {0}'.format(result.text))
+        lifecycle = json.loads(result.content)
+        return lifecycle
+
+    def delete_lifecycle(self, lifecycle_id):
+        api_url = urljoin(self.host, 'api/lifecycles/{0}'.format(lifecycle_id))
+        result = requests.delete(api_url, params={'ApiKey': self._api_key})
+        self._valid_status_code(result, 'Failed to delete lifecycle; error: {0}'.format(result.text))
+        return True
+
+    def find_lifecycle_by_name(self, lifecycle_name):
+        api_url = urljoin(self.host, '/api/lifecycles/all')
+        result = requests.get(api_url, params={'ApiKey': self._api_key})
+        self._valid_status_code(result, 'Failed to find machine {1}; error: {0}'.format(result.text,
+                                                                                        lifecycle_name))
+        lifecycles = json.loads(result.content)
+        for lifecycle in lifecycles:
+            if lifecycle['Name'] == lifecycle_name:
+                return lifecycle
+        raise Exception('Lifecycle named {0} was not found on Octopus Deploy'.format(lifecycle_name))
+
+    def lifecycle_exists(self, lifecycle_dict):
+        """
+        :param lifecycle_dict: a json response from Octopus rest api
+        :type lifecycle_dict: dict
+        :return:
+        """
+        if 'Id' in lifecycle_dict:
+            api_url = urljoin(self.host, '/api/lifecycles/{0}'.format(lifecycle_dict['Id']))
+            result = requests.get(api_url, params={'ApiKey': self._api_key})
+            try:
+                self._valid_status_code(result, 'Lifeycle not found; error: {0}'.format(result.text))
+            except:
+                return False
+            else:
+                return True
+        else:
+            # Lifecycle object has no id, maybe you haven't deployed it yet?
+            return False
+
     def machine_exists(self, machine_spec):
         if hasattr(machine_spec, 'id'):
             api_url = urljoin(self.host, '/api/machines/{0}'.format(machine_spec.id))

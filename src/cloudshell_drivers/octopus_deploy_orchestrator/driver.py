@@ -60,6 +60,42 @@ class OctopusDeployOrchestratorDriver(ResourceDriverInterface):
         """
         return self._delete_environment(context)
 
+    def create_lifecycle(self, context):
+        """
+        :param ResourceCommandContext context: the context the command runs on
+        """
+        return self._create_lifecycle(context)
+
+    def delete_lifecycle(self, context):
+        """
+        :param ResourceCommandContext context: the context the command runs on
+        """
+        return self._delete_lifecycle(context)
+
+    def create_channel(self, context, project_name):
+        """
+        :param ResourceCommandContext context: the context the command runs on
+        """
+        return self._create_lifecycle(context, project_name)
+
+    def delete_channel(self, context, project_name):
+        """
+        :param ResourceCommandContext context: the context the command runs on
+        """
+        return self._delete_lifecycle(context, project_name)
+
+    def _create_channel(self, context, project_name):
+        """
+        :param ResourceCommandContext context: the context the command runs on
+        """
+        pass
+
+    def _delete_channel(self, context, project_name):
+        """
+        :param ResourceCommandContext context: the context the command runs on
+        """
+        pass
+
     def _create_environment(self, context):
         cloudshell = self._get_cloudshell_api(context)
         octo = self._get_octopus_server(context, cloudshell)
@@ -67,6 +103,26 @@ class OctopusDeployOrchestratorDriver(ResourceDriverInterface):
         deployed_env = octo.create_environment(env)
         # todo add machines to environment
         return json.dumps(deployed_env.__dict__)
+
+    def _create_lifecycle(self, context):
+        cloudshell = self._get_cloudshell_api(context)
+        octo = self._get_octopus_server(context, cloudshell)
+        environment = self._get_deployed_environment_spec(self._get_environment_spec(context), octo)
+        #lifecycle name == environment name == reservation id
+        return octo.create_lifecycle(environment.name, 'Cloudshell Sandbox Lifecycle', environment)
+
+    def _delete_lifecycle(self, context):
+        cloudshell = self._get_cloudshell_api(context)
+        octo = self._get_octopus_server(context, cloudshell)
+        #lifecycle name == environment name == reservation id
+        lifecycle_name = self._get_environment_spec(context).name
+        lifecycle = octo.find_lifecycle_by_name(lifecycle_name)
+        return octo.delete_lifecycle(lifecycle['Id'])
+
+    def _get_deployed_environment_spec(self, env_spec, octo_session):
+        id = octo_session.find_environment_by_name(env_spec.name)['Id']
+        env_spec.set_id(id)
+        return env_spec
 
     def _add_existing_machine_to_environment(self, context, machine_name, machine_roles, environment_id):
         """

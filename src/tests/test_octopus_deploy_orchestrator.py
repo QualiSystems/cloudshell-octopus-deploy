@@ -38,6 +38,7 @@ class OctopusDeployOrchestratorTest(unittest.TestCase):
         self.octo = OctopusServer(OCTOPUS_HOST, OCTOPUS_API_KEY)
         self.ENVIRONMENTS = []
         self.MACHINES = []
+        self.LIFECYCLES = []
 
     def tearDown(self):
         if hasattr(self, 'MACHINES'):
@@ -45,6 +46,9 @@ class OctopusDeployOrchestratorTest(unittest.TestCase):
                 self.octo.delete_machine(machine)
         if hasattr(self, 'RELEASE'):
             self.octo.delete_release(self.RELEASE)
+        if hasattr(self, 'LIFECYCLES'):
+            for lifecycle in self.LIFECYCLES:
+                self.octo.delete_lifecycle(lifecycle['Id'])
         if hasattr(self, 'ENVIRONMENTS'):
             for environment in self.ENVIRONMENTS:
                 self.octo.delete_environment(environment)
@@ -110,4 +114,23 @@ class OctopusDeployOrchestratorTest(unittest.TestCase):
         self.driver.delete_environment(self.resource_command_context)
         self.ENVIRONMENTS.remove(env)
         self.assertFalse(self.octo.environment_exists(env))
+
+    def test_create_lifecycle(self):
+        env = self._given_an_environment_exists()
+        lifecycle = self.driver.create_lifecycle(self.resource_command_context)
+        self.LIFECYCLES.append(lifecycle)
+        self.assertTrue(self.octo.lifecycle_exists(lifecycle))
+
+    def _given_a_lifecycle_exists(self):
+        env = self._given_an_environment_exists()
+        lifecycle = self.driver.create_lifecycle(self.resource_command_context)
+        self.LIFECYCLES.append(lifecycle)
+        return lifecycle
+
+    def test_delete_lifecycle(self):
+        lifecycle = self._given_a_lifecycle_exists()
+        self.assertTrue(self.octo.lifecycle_exists(lifecycle))
+        self.driver.delete_lifecycle(self.resource_command_context)
+        self.LIFECYCLES.remove(lifecycle)
+        self.assertFalse(self.octo.lifecycle_exists(lifecycle))
 
