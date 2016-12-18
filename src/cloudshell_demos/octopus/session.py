@@ -60,16 +60,60 @@ class OctopusServer:
         machine_spec.set_id(json.loads(result.content)['Id'])
         return machine_spec
 
-    def add_existing_machine_to_environment(self, machine_id, environment_id):
+    def find_machine_by_name(self, machine_name):
+        """
+        :type machine_name: str
+        :return:
+        """
+        api_url = urljoin(self.host, '/api/machines/all')
+        result = requests.get(api_url, params={'ApiKey': self._api_key})
+        self._valid_status_code(result, 'Failed to find machine {1}; error: {0}'.format(result.text,
+                                                                                        machine_name))
+        machines = json.loads(result.content)
+        for machine in machines:
+            if machine['Name'] == machine_name:
+                return machine
+        raise Exception('Machine named {0} was not found on Octopus Deploy'.format(machine_name))
+
+    def find_environment_by_name(self, environment_name):
+        """
+        :type machine_name: str
+        :rtype: dict
+        """
+        api_url = urljoin(self.host, '/api/environments/all')
+        result = requests.get(api_url, params={'ApiKey': self._api_key})
+        self._valid_status_code(result, 'Failed to find environment {1}; error: {0}'.format(result.text,
+                                                                                            environment_name))
+        environments = json.loads(result.content)
+        for environment_dict in environments:
+            if environment_dict['Name'] == environment_name:
+                return environment_dict
+        raise Exception('Environment named {0} was not found on Octopus Deploy'.format(environment_name))
+
+    def add_existing_machine_to_environment(self, machine_id, environment_id, roles=[]):
         api_url = urljoin(self.host, '/api/machines/{0}'.format(machine_id))
         result = requests.get(api_url, params={'ApiKey': self._api_key})
         existing_machine = json.loads(result.text)
         existing_machine['EnvironmentIds'].append(environment_id)
+        if roles:
+            existing_machine['Roles'].extend(roles)
         result = requests.put(api_url, params={'ApiKey': self._api_key}, json=existing_machine)
         self._valid_status_code(result,
                                 'Failed to add existing machine with id {0} to environment {1}.'
                                 '\nError: {2}'.format(machine_id, environment_id, result.text))
-        return True
+        return json.loads(result.content)
+
+    def remove_existing_machine_from_environment(self, machine_id, environment_id):
+        api_url = urljoin(self.host, '/api/machines/{0}'.format(machine_id))
+        result = requests.get(api_url, params={'ApiKey': self._api_key})
+        existing_machine = json.loads(result.text)
+        if environment_id in existing_machine['EnvironmentIds']:
+            existing_machine['EnvironmentIds'].remove(environment_id)
+        result = requests.put(api_url, params={'ApiKey': self._api_key}, json=existing_machine)
+        self._valid_status_code(result,
+                                'Failed to remove existing machine with id {0} to environment {1}.'
+                                '\nError: {2}'.format(machine_id, environment_id, result.text))
+        return json.loads(result.content)
 
     def create_release(self, release_spec):
         """
@@ -163,8 +207,13 @@ class OctopusServer:
     def delete_environment(self, environment):
         if not self.environment_exists(environment):
             raise Exception('Environment does not exist')
-        api_url = urljoin(self.host, '/api/environments/{0}'.format(environment.id))
+        self.delete_environment_by_environment_id(environment.id)
+
+    def delete_environment_by_environment_id(self, environment_id):
+        api_url = urljoin(self.host, '/api/environments/{0}'.format(environment_id))
         result = requests.delete(api_url, params={'ApiKey': self._api_key})
+        self._valid_status_code(result, 'Error during delete environment: {0}'.format(result.text))
+        return True
 
     def delete_machine(self, machine_spec):
         if not self.machine_exists(machine_spec):

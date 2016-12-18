@@ -2,7 +2,19 @@
     <Layout>
         <!--<Category Name="Hidden Commands">-->
             <Command Description="..." Name="create_environment" DisplayName="Create Octopus Environment" />
-            <Command Description="..." Name="add_existing_machine_to_environment" DisplayName="Add Existing Machine To Environment" />
-        <!--</Category>-->
+            <Command Description="..." Name="delete_environment" DisplayName="Delete Octopus Environment" />
+            <Command Description="..." Name="add_existing_machine_to_environment" DisplayName="Add Existing Machine To Environment">
+                <Parameters>
+                    <Parameter Name="machine_name" DisplayName="Machine Name" Type="String" Mandatory="True" DefaultValue=""/>
+                    <Parameter Name="machine_roles" DisplayName="Machine Roles" Type="String" Mandatory="False" DefaultValue=""/>
+                    <Parameter Name="environment_id" DisplayName="Environment Id" Type="String" Mandatory="True" DefaultValue=""/>
+                </Parameters>
+            </Command>
+            <Command Description="..." Name="remove_existing_machine_from_environment" DisplayName="Remove Existing Machine From Environment">
+                <Parameters>
+                    <Parameter Name="machine_name" DisplayName="Machine Name" Type="String" Mandatory="True" DefaultValue=""/>
+                    <Parameter Name="environment_name" DisplayName="Environment Name" Type="String" Mandatory="True" DefaultValue=""/>
+                </Parameters>
+            </Command>
     </Layout>
 </Driver>
