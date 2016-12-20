@@ -76,7 +76,7 @@ class OctopusDeployTest(unittest.TestCase):
         self.DEPLOYED_ENV = self._given_an_environment_exists_on_octopus(machine_specs=[self.MACHINE_SPEC])
         self.ENVIRONMENTS.append(self.DEPLOYED_ENV)
         self.RELEASE = self._given_a_release_exists_on_octopus()
-        result = self.OCTO_SESSION.deploy_release(self.RELEASE, self.DEPLOYED_ENV)
+        result = self.OCTO_SESSION.deploy_release(self.RELEASE, self.DEPLOYED_ENV.id)
         self.assertTrue(self.OCTO_SESSION.wait_for_deployment_to_complete(result))
 
     def _given_an_environment_exists_on_octopus(self, octopus_session=None, env=None, machine_specs=[], name=None):

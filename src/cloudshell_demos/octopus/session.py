@@ -48,6 +48,33 @@ class OctopusServer:
         env.set_id(json.loads(result.content)['Id'])
         return env
 
+    def create_channel(self, name, project_id, lifecycle_id):
+        channel = {
+            'Name': name,
+            'ProjectId': project_id,
+            'LifecycleId': lifecycle_id
+        }
+        api_url = urljoin(self.host, '/api/channels')
+        result = requests.post(api_url, params={'ApiKey': self._api_key}, json=channel)
+        self._valid_status_code(result, 'Failed to create channel; error: {0}'.format(result.text))
+        return json.loads(result.content)
+
+    def delete_channel(self, channel_id):
+        self._delete_channel_releases(channel_id)
+        api_url = urljoin(self.host, '/api/channels/{0}'.format(channel_id))
+        result = requests.delete(api_url, params={'ApiKey': self._api_key})
+        self._valid_status_code(result, 'Failed to delete channel; error: {0}'.format(result.text))
+        return json.loads(result.content)
+
+    def _delete_channel_releases(self, channel_id):
+        api_url = urljoin(self.host, '/api/channels/{0}/releases'.format(channel_id))
+        result = requests.get(api_url, params={'ApiKey': self._api_key})
+        self._valid_status_code(result, 'Failed to get channel releases; error: {0}'.format(result.text))
+        releases_dict = json.loads(result.content)
+        if 'Items' in releases_dict:
+            for release in releases_dict['Items']:
+                self.delete_release_by_release_id(release['Id'])
+
     def create_machine(self, machine_spec):
         """
         :type machine_spec: cloudshell_demos.octopus.machine_spec.MachineSpec
@@ -90,6 +117,24 @@ class OctopusServer:
                 return environment_dict
         raise Exception('Environment named {0} was not found on Octopus Deploy'.format(environment_name))
 
+    def find_channel_by_name_on_project(self, project_id, channel_name):
+        api_url = urljoin(self.host, '/api/projects/{0}/channels'.format(project_id))
+        result = requests.get(api_url, params={'ApiKey': self._api_key})
+        project_channels = json.loads(result.text)['Items']
+        for channel in project_channels:
+            if channel['Name'] == channel_name:
+                return channel
+        raise Exception('Channel named {0} was not found on Octopus Deploy'.format(channel_name))
+
+    def channel_exists(self, project_id, channel_name):
+        api_url = urljoin(self.host, '/api/projects/{0}/channels'.format(project_id))
+        result = requests.get(api_url, params={'ApiKey': self._api_key})
+        project_channels = json.loads(result.text)['Items']
+        for channel in project_channels:
+            if channel['Name'] == channel_name:
+                return True
+        return False
+
     def add_existing_machine_to_environment(self, machine_id, environment_id, roles=[]):
         api_url = urljoin(self.host, '/api/machines/{0}'.format(machine_id))
         result = requests.get(api_url, params={'ApiKey': self._api_key})
@@ -126,23 +171,49 @@ class OctopusServer:
         release_spec.set_id(json.loads(result.content)['Id'])
         return release_spec
 
-    def deploy_release(self, release_spec, environment_spec):
+    def deploy_release(self, release_spec, environment_id):
         """
         :param release_spec: cloudshell_demos.octopus.release_spec.ReleaseSpec
-        :type environment_spec: cloudshell_demos.octopus.environment_spec.EnvironmentSpec
+        :type environment_id: str
         :return:
         """
         api_url = urljoin(self.host, '/api/deployments')
         deployment = {
-            'EnvironmentId': environment_spec.id,
+            'EnvironmentId': environment_id,
             'ReleaseId': release_spec.id
         }
         result = requests.post(api_url, params={'ApiKey': self._api_key}, json=deployment)
         self._valid_status_code(result, 'Failed to deploy release; error: {0}'.format(result.text))
         deployment_result = json.loads(result.text)
+
+        self._wait_till_deployment_completes(deployment_result)
+
         return deployment_result
 
-    def wait_for_deployment_to_complete(self, deployment_result, retries=5, sleep_seconds=60):
+    def _wait_till_deployment_completes(self, deployment_result, retries=10, wait_duration=60):
+        deployments = self._get_release_deployments(deployment_result)
+
+        for deployment in deployments:
+            deployment_completed = False
+            task_url = urljoin(self.host, deployment['Links']['Task'])
+            for retry in xrange(retries):
+                result = requests.get(task_url, params={'ApiKey': self._api_key})
+                if json.loads(result.content)['IsCompleted']:
+                    deployment_completed = True
+                    break
+                else:
+                    time.sleep(wait_duration)
+            if not deployment_completed:
+                raise Exception('Timeout after {0}'.format(str(retries*wait_duration)))
+
+    def _get_release_deployments(self, deployment_result):
+        deployments_url = urljoin(self.host, deployment_result['Links']['Release'] + '/deployments')
+        result = requests.get(deployments_url, params={'ApiKey': self._api_key})
+        self._valid_status_code(result, 'Failed to get release deployments; error: {0}'.format(result.text))
+        deployments = json.loads(result.content)['Items']
+        return deployments
+
+    def wait_for_deployment_to_complete(self, deployment_result, retries=20, sleep_seconds=30):
         deployment_outcome = False
         api_url = urljoin(self.host, 'api/tasks/{0}'.format(deployment_result['TaskId']))
         for retry in range(retries):
@@ -179,7 +250,7 @@ class OctopusServer:
             'Description': lifecycle_description,
             'Phases': [{
                 'Name': 'Cloudshell Sandbox Phase',
-                'AutomaticDeploymentTargets': [environment_spec.name]
+                'AutomaticDeploymentTargets': [environment_spec.id]
             }]
         }
         api_url = urljoin(self.host, '/api/lifecycles')
@@ -194,16 +265,31 @@ class OctopusServer:
         self._valid_status_code(result, 'Failed to delete lifecycle; error: {0}'.format(result.text))
         return True
 
+    def get_entity(self, relative_path):
+        api_url = urljoin(self.host, relative_path)
+        result = requests.get(api_url, params={'ApiKey': self._api_key})
+        self._valid_status_code(result, 'Couldn''t get entity. error: {0}'.format(result.text))
+        return json.loads(result.content)
+
     def find_lifecycle_by_name(self, lifecycle_name):
         api_url = urljoin(self.host, '/api/lifecycles/all')
         result = requests.get(api_url, params={'ApiKey': self._api_key})
-        self._valid_status_code(result, 'Failed to find machine {1}; error: {0}'.format(result.text,
-                                                                                        lifecycle_name))
+        self._valid_status_code(result, 'Failed to find lifecycle {1}; error: {0}'.format(result.text, lifecycle_name))
         lifecycles = json.loads(result.content)
         for lifecycle in lifecycles:
             if lifecycle['Name'] == lifecycle_name:
                 return lifecycle
         raise Exception('Lifecycle named {0} was not found on Octopus Deploy'.format(lifecycle_name))
+
+    def find_project_by_name(self, project_name):
+        api_url = urljoin(self.host, '/api/projects/all')
+        result = requests.get(api_url, params={'ApiKey': self._api_key})
+        self._valid_status_code(result, 'Failed to find project {1}; error: {0}'.format(result.text, project_name))
+        projects = json.loads(result.content)
+        for project in projects:
+            if project['Name'] == project_name:
+                return project
+        raise Exception('Project named {0} was not found on Octopus Deploy'.format(project_name))
 
     def lifecycle_exists(self, lifecycle_dict):
         """
@@ -280,6 +366,10 @@ class OctopusServer:
         if not self.release_exists(release_spec):
             raise Exception('Release does not exist')
         api_url = urljoin(self.host, '/api/releases/{0}'.format(release_spec.id))
+        result = requests.delete(api_url, params={'ApiKey': self._api_key})
+
+    def delete_release_by_release_id(self, release_id):
+        api_url = urljoin(self.host, '/api/releases/{0}'.format(release_id))
         result = requests.delete(api_url, params={'ApiKey': self._api_key})
 
     def _valid_status_code(self, result, error_msg):

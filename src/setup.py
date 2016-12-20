@@ -10,7 +10,7 @@ def get_file_content(file_name):
 
 setup(
     name='cloudshell-octopus-deploy',
-    version='0.2.0',
+    version=get_file_content('version.txt'),
     description="Orchestrate Octopus Deploy releases through Cloudshell",
     long_description="Orchestrate Octopus Deploy releases through Cloudshell",
     author="Nahum Timerman",

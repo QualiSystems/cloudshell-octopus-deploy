@@ -3,6 +3,7 @@ from cloudshell.shell.core.resource_driver_interface import ResourceDriverInterf
 from cloudshell.shell.core.driver_context import InitCommandContext, ResourceCommandContext
 from cloudshell_demos.octopus.session import OctopusServer
 from cloudshell_demos.octopus.environment_spec import EnvironmentSpec
+from cloudshell_demos.octopus.release_spec import ReleaseSpec
 
 # cloudshell_demos attribute names
 OCTOPUS_DEPLOY_PROVIDER = 'Octopus Deploy Provider'
@@ -72,29 +73,70 @@ class OctopusDeployOrchestratorDriver(ResourceDriverInterface):
         """
         return self._delete_lifecycle(context)
 
+    def create_and_deploy_release(self, context, project_name):
+        return self._create_and_deploy_release(context, project_name)
+
+    def delete_release(self, context, project_name):
+        return self._delete_release(context, project_name)
+
+    def _create_and_deploy_release(self, context, project_name):
+        cloudshell = self._get_cloudshell_api(context)
+        octo = self._get_octopus_server(context, cloudshell)
+        release_spec = self._get_release_spec(context, octo, project_name)
+        # environment_id = octo.find_environment_by_name(context.reservation.reservation_id)['Id']
+        octo.create_release(release_spec)
+        # octo.deploy_release(release_spec, environment_id)
+
+    def _delete_release(self, context, project_name):
+        cloudshell = self._get_cloudshell_api(context)
+        octo = self._get_octopus_server(context, cloudshell)
+        release_spec = self._get_release_spec(context, octo, project_name)
+        octo.delete_release(release_spec)
+
+    def _get_release_spec(self, context, octo, project_name):
+        project = octo.find_project_by_name(project_name)
+        channel = octo.find_channel_by_name_on_project(project_id=project['Id'],
+                                             channel_name=context.reservation.reservation_id)
+        # octopus deploy release version - "You can also use the letter i to increment part of the last release"
+        release_spec = ReleaseSpec(project['Id'], version='1.i', release_notes='Cloudshell Release', channel_id=channel['Id'])
+        return release_spec
+
     def create_channel(self, context, project_name):
         """
         :param ResourceCommandContext context: the context the command runs on
         """
-        return self._create_lifecycle(context, project_name)
+        return self._create_channel(context, project_name)
 
     def delete_channel(self, context, project_name):
         """
         :param ResourceCommandContext context: the context the command runs on
         """
-        return self._delete_lifecycle(context, project_name)
+        return self._delete_channel(context, project_name)
 
     def _create_channel(self, context, project_name):
         """
+        :param project_name: name of project with which channel is associated
         :param ResourceCommandContext context: the context the command runs on
         """
-        pass
+        cloudshell = self._get_cloudshell_api(context)
+        octo = self._get_octopus_server(context, cloudshell)
+        project = octo.find_project_by_name(project_name)
+        lifecycle = octo.find_lifecycle_by_name(context.reservation.reservation_id)
+        octo.create_channel(context.reservation.reservation_id, project['Id'], lifecycle['Id'])
+        return 'Channel created'
 
     def _delete_channel(self, context, project_name):
         """
+        :param project_name: name of project with which channel is associated
         :param ResourceCommandContext context: the context the command runs on
         """
-        pass
+        cloudshell = self._get_cloudshell_api(context)
+        octo = self._get_octopus_server(context, cloudshell)
+        project = octo.find_project_by_name(project_name)
+        channel = octo.find_channel_by_name_on_project(project_id=project['Id'],
+                                             channel_name=context.reservation.reservation_id)
+        octo.delete_channel(channel['Id'])
+        return 'Channel deleted'
 
     def _create_environment(self, context):
         cloudshell = self._get_cloudshell_api(context)
@@ -124,14 +166,14 @@ class OctopusDeployOrchestratorDriver(ResourceDriverInterface):
         env_spec.set_id(id)
         return env_spec
 
-    def _add_existing_machine_to_environment(self, context, machine_name, machine_roles, environment_id):
+    def _add_existing_machine_to_environment(self, context, machine_name, machine_roles, environment_name):
         """
         :param machine_name: the name of existing machine in Octopus Deploy
         :param machine_roles: a comma separated list of role names, must be at least one
-        :param environment_id: environment to which the machine will be added
+        :param environment_name: environment to which the machine will be added
         :type machine_name: str
         :type machine_roles: str
-        :type environment_id: str
+        :type environment_name: str
         :param ResourceCommandContext context: the context the command runs on
         :return:
         """
@@ -139,7 +181,8 @@ class OctopusDeployOrchestratorDriver(ResourceDriverInterface):
         cloudshell = self._get_cloudshell_api(context)
         octo = self._get_octopus_server(context, cloudshell)
         machine = octo.find_machine_by_name(machine_name)
-        octo.add_existing_machine_to_environment(machine['Id'], environment_id, roles)
+        environment = octo.find_environment_by_name(environment_name)
+        octo.add_existing_machine_to_environment(machine['Id'], environment['Id'], roles)
 
     def _remove_existing_machine_from_environment(self, context, machine_name, environment_name):
         cloudshell = self._get_cloudshell_api(context)

@@ -93,3 +93,5 @@ ENV/
 .idea/*
 /src/tests/context.py
 /src/dist/
+/src/build/
+/src/cloudshell-orchestration-script/Default Sandbox Setup/cloudshell-orchestration-script.zip

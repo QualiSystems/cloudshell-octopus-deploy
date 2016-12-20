@@ -15,11 +15,21 @@
                     <Parameter Name="project_name" DisplayName="Project Name" Type="String" Mandatory="True" DefaultValue=""/>
                 </Parameters>
             </Command>
+            <Command Description="..." Name="create_and_deploy_release" DisplayName="Create And Deploy Release">
+                <Parameters>
+                    <Parameter Name="project_name" DisplayName="Project Name" Type="String" Mandatory="True" DefaultValue=""/>
+                </Parameters>
+            </Command>
+            <Command Description="..." Name="delete_release" DisplayName="Delete Release">
+                <Parameters>
+                    <Parameter Name="project_name" DisplayName="Project Name" Type="String" Mandatory="True" DefaultValue=""/>
+                </Parameters>
+            </Command>
             <Command Description="..." Name="add_existing_machine_to_environment" DisplayName="Add Existing Machine To Environment">
                 <Parameters>
                     <Parameter Name="machine_name" DisplayName="Machine Name" Type="String" Mandatory="True" DefaultValue=""/>
+                    <Parameter Name="environment_name" DisplayName="Environment Name" Type="String" Mandatory="True" DefaultValue=""/>
                     <Parameter Name="machine_roles" DisplayName="Machine Roles" Type="String" Mandatory="False" DefaultValue=""/>
-                    <Parameter Name="environment_id" DisplayName="Environment Id" Type="String" Mandatory="True" DefaultValue=""/>
                 </Parameters>
             </Command>
             <Command Description="..." Name="remove_existing_machine_from_environment" DisplayName="Remove Existing Machine From Environment">

@@ -1,6 +1,6 @@
 import unittest
 from uuid import uuid4
-from context import OCTOPUS_HOST, OCTOPUS_API_KEY, TENTACLE_SERVER, THUMBPRINT, PROJECT_ID
+from context import OCTOPUS_HOST, OCTOPUS_API_KEY, TENTACLE_SERVER, THUMBPRINT, PROJECT_NAME
 from cloudshell.api.cloudshell_api import CloudShellAPISession
 from cloudshell_drivers.octopus_deploy_orchestrator.driver import OctopusDeployOrchestratorDriver, \
     OCTOPUS_DEPLOY_PROVIDER
@@ -39,6 +39,7 @@ class OctopusDeployOrchestratorTest(unittest.TestCase):
         self.ENVIRONMENTS = []
         self.MACHINES = []
         self.LIFECYCLES = []
+        self.PROJECT_ID = self.octo.find_project_by_name(PROJECT_NAME)['Id']
 
     def tearDown(self):
         if hasattr(self, 'MACHINES'):
@@ -46,12 +47,21 @@ class OctopusDeployOrchestratorTest(unittest.TestCase):
                 self.octo.delete_machine(machine)
         if hasattr(self, 'RELEASE'):
             self.octo.delete_release(self.RELEASE)
+
+        if self.octo.channel_exists(self.PROJECT_ID,
+                                    channel_name=self.resource_command_context.reservation.reservation_id):
+            self.delete_channel()
         if hasattr(self, 'LIFECYCLES'):
             for lifecycle in self.LIFECYCLES:
                 self.octo.delete_lifecycle(lifecycle['Id'])
         if hasattr(self, 'ENVIRONMENTS'):
             for environment in self.ENVIRONMENTS:
                 self.octo.delete_environment(environment)
+
+    def delete_channel(self):
+        channel = self.octo.find_channel_by_name_on_project(project_id=self.PROJECT_ID,
+                                                            channel_name=self.resource_command_context.reservation.reservation_id)
+        self.octo.delete_channel(channel['Id'])
 
     def test_create_environment_command(self):
         result = self.driver.create_environment(self.resource_command_context)
@@ -86,7 +96,7 @@ class OctopusDeployOrchestratorTest(unittest.TestCase):
     def _given_the_machine_is_also_associated_with_another_environment(self, machine):
         self.resource_command_context.reservation.reservation_id = str(uuid4())
         env = self._given_an_environment_exists()
-        self.octo.add_existing_machine_to_environment(machine.id, env.id)
+        self.octo.add_existing_machine_to_environment(machine.id, env.name)
         return env
 
     def test_add_existing_machine_to_environment_command(self):
@@ -95,7 +105,7 @@ class OctopusDeployOrchestratorTest(unittest.TestCase):
 
         new_env = self._given_an_environment_exists(True)
         roles = 'MachineRole1'
-        self.driver.add_existing_machine_to_environment(self.resource_command_context, machine_name, roles, new_env.id)
+        self.driver.add_existing_machine_to_environment(self.resource_command_context, machine_name, roles, new_env.name)
         machine_id = self.octo.find_machine_by_name(machine_name)['Id']
         self.assertTrue(self.octo.machine_exists_on_environment(machine_id, new_env.id))
         self.octo.remove_existing_machine_from_environment(machine_id, new_env.id)
@@ -122,7 +132,7 @@ class OctopusDeployOrchestratorTest(unittest.TestCase):
         self.assertTrue(self.octo.lifecycle_exists(lifecycle))
 
     def _given_a_lifecycle_exists(self):
-        env = self._given_an_environment_exists()
+        self._given_a_machine_exists_on_an_environment()
         lifecycle = self.driver.create_lifecycle(self.resource_command_context)
         self.LIFECYCLES.append(lifecycle)
         return lifecycle
@@ -133,4 +143,35 @@ class OctopusDeployOrchestratorTest(unittest.TestCase):
         self.driver.delete_lifecycle(self.resource_command_context)
         self.LIFECYCLES.remove(lifecycle)
         self.assertFalse(self.octo.lifecycle_exists(lifecycle))
+
+    def test_create_channel(self):
+        self._given_a_lifecycle_exists()
+        self.driver.create_channel(self.resource_command_context, PROJECT_NAME)
+        self.assertTrue(self.octo.channel_exists(self.PROJECT_ID,
+                                                 channel_name=self.resource_command_context.reservation.reservation_id))
+
+    def _given_a_channel_exists(self):
+        self._given_a_lifecycle_exists()
+        self.driver.create_channel(self.resource_command_context, PROJECT_NAME)
+
+    def test_delete_channel(self):
+        self._given_a_channel_exists()
+        self.assertTrue(self.octo.channel_exists(self.PROJECT_ID,
+                                                 channel_name=self.resource_command_context.reservation.reservation_id))
+        self.driver.delete_channel(self.resource_command_context, PROJECT_NAME)
+        self.assertFalse(self.octo.channel_exists(self.PROJECT_ID,
+                                                  channel_name=self.resource_command_context.reservation.reservation_id))
+
+    def test_create_and_deploy_release(self):
+        self._given_a_channel_exists()
+        self.driver.create_and_deploy_release(self.resource_command_context, PROJECT_NAME)
+        deployments = self._get_deployments()
+        self.assertTrue(len(deployments) > 0)
+
+    def _get_deployments(self):
+        channel = self.octo.find_channel_by_name_on_project(self.PROJECT_ID,
+                                                            self.resource_command_context.reservation.reservation_id)
+        releases = self.octo.get_entity(channel['Links']['Releases'])['Items']
+        deployments = self.octo.get_entity(releases[0]['Links']['Deployments'].replace('{?skip}', ''))['Items']
+        return deployments
 
