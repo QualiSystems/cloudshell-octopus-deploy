@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<DataModelInfo xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://schemas.qualisystems.com/ResourceManagement/DataModelSchema.xsd">
+  <Attributes>
+    <AttributeInfo Name="API Key" Type="String" DefaultValue="" IsReadOnly="false">
+      <Rules>
+        <Rule Name="Configuration" />
+        <Rule Name="Setting" />
+      </Rules>
+    </AttributeInfo>
+    <AttributeInfo Name="Octopus Deploy Provider" Type="String" DefaultValue="" Description="Resource in Cloudshell that represents the Octopus Deploy server" IsReadOnly="false">
+      <Rules />
+    </AttributeInfo>
+  </Attributes>
+  <ResourceFamilies>
+    <ResourceFamily Name="CI-CD Provider" Description="" IsSearchable="true" ResourceType="Resource">
+      <AttachedAttributes />
+      <AttributeValues />
+      <Models>
+        <ResourceModel Name="Octopus Deploy Server" Description="" SupportsConcurrentCommands="false">
+          <AttachedAttributes>
+            <AttachedAttribute Name="API Key" IsOverridable="true" IsLocal="true">
+              <AllowedValues />
+            </AttachedAttribute>
+          </AttachedAttributes>
+          <AttributeValues>
+            <AttributeValue Name="API Key" Value="" />
+          </AttributeValues>
+          <ParentModels />
+          <Drivers />
+          <Scripts />
+        </ResourceModel>
+      </Models>
+      <Categories />
+    </ResourceFamily>
+    <ResourceFamily Name="CI-CD Service" Description="" IsService="true" ServiceType="Regular">
+      <AttachedAttributes />
+      <AttributeValues />
+      <Models>
+        <ResourceModel Name="Octopus Deploy Orchestrator" Description="" SupportsConcurrentCommands="false">
+          <AttachedAttributes>
+            <AttachedAttribute Name="Octopus Deploy Provider" IsOverridable="true" IsLocal="true" UserInput="true">
+              <AllowedValues />
+            </AttachedAttribute>
+          </AttachedAttributes>
+          <AttributeValues>
+            <AttributeValue Name="Octopus Deploy Provider" Value="" />
+          </AttributeValues>
+          <ParentModels />
+          <Drivers>
+            <DriverName>Octopus Deploy Orchestrator</DriverName>
+          </Drivers>
+          <Scripts />
+        </ResourceModel>
+      </Models>
+      <Categories>
+        <Category>Applications</Category>
+      </Categories>
+    </ResourceFamily>
+  </ResourceFamilies>
+  <DriverDescriptors>
+    <DriverDescriptor Name="Octopus Deploy Orchestrator" Description="Describe the purpose of your CloudShell shell" DriverType="PythonDriver" />
+    <DriverDescriptor Name="Python Setup &amp; Teardown" Description="This driver is used for running Python scripts in the environment setup and teardown. To use this driver, make sure you select a suitable setup and/or teardown script." DriverType="TestShellDriver" />
+  </DriverDescriptors>
+  <ScriptDescriptors>
+    <ScriptDescriptor Name="Default Sandbox Setup" CategoryName="Hidden Commands" Alias="Setup script">
+      <ScriptInputs />
+    </ScriptDescriptor>
+    <ScriptDescriptor Name="Default Sandbox Teardown" CategoryName="Hidden Commands" Version="1.0.1614 " Alias="Teardown script">
+      <ScriptInputs />
+    </ScriptDescriptor>
+  </ScriptDescriptors>
+</DataModelInfo>
