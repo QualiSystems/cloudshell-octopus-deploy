@@ -30,17 +30,17 @@ class OctopusDeployTest(unittest.TestCase):
     def tearDown(self):
         if hasattr(self, 'MACHINES'):
             for machine in self.MACHINES:
-                self.OCTO_SESSION.delete_machine(machine)
+                self.OCTO_SESSION.delete_machine(machine.id)
         if hasattr(self, 'RELEASE'):
-            self.OCTO_SESSION.delete_release(self.RELEASE)
+            self.OCTO_SESSION.delete_release(self.RELEASE.id)
         if hasattr(self, 'ENVIRONMENTS'):
             for environment in self.ENVIRONMENTS:
-                self.OCTO_SESSION.delete_environment(environment)
+                self.OCTO_SESSION.delete_environment(environment.id)
 
     def test_create_new_environment(self):
         self.DEPLOYED_ENV = self.OCTO_SESSION.create_environment(self.QUALI_ENV_SPEC)
         self.ENVIRONMENTS.append(self.DEPLOYED_ENV)
-        self.assertTrue(self.OCTO_SESSION.environment_exists(self.DEPLOYED_ENV))
+        self.assertTrue(self.OCTO_SESSION.environment_exists(self.DEPLOYED_ENV.id))
 
     def test_create_machine(self):
         self.DEPLOYED_ENV = self._given_an_environment_exists_on_octopus()
@@ -52,7 +52,7 @@ class OctopusDeployTest(unittest.TestCase):
                                    environment_ids=[self.DEPLOYED_ENV.id])
         deployed_machine_spec = self.OCTO_SESSION.create_machine(machine_spec)
         self.MACHINES.append(deployed_machine_spec)
-        self.assertTrue(self.OCTO_SESSION.machine_exists(deployed_machine_spec))
+        self.assertTrue(self.OCTO_SESSION.machine_exists(deployed_machine_spec.id))
 
     def test_add_existing_machine_to_environment(self):
         self.DEPLOYED_ENV = self._given_an_environment_exists_on_octopus()
@@ -70,14 +70,7 @@ class OctopusDeployTest(unittest.TestCase):
                                                      str(randint(0, 8000000))]),
                                    release_notes='Ya welli')
         self.RELEASE = self.OCTO_SESSION.create_release(release_spec)
-        self.assertTrue(self.OCTO_SESSION.release_exists(self.RELEASE))
-
-    def test_deploy_release(self):
-        self.DEPLOYED_ENV = self._given_an_environment_exists_on_octopus(machine_specs=[self.MACHINE_SPEC])
-        self.ENVIRONMENTS.append(self.DEPLOYED_ENV)
-        self.RELEASE = self._given_a_release_exists_on_octopus()
-        result = self.OCTO_SESSION.deploy_release(self.RELEASE, self.DEPLOYED_ENV.id)
-        self.assertTrue(self.OCTO_SESSION.wait_for_deployment_to_complete(result))
+        self.assertTrue(self.OCTO_SESSION.release_exists(self.RELEASE.id))
 
     def _given_an_environment_exists_on_octopus(self, octopus_session=None, env=None, machine_specs=[], name=None):
         if not octopus_session:

@@ -44,9 +44,9 @@ class OctopusDeployOrchestratorTest(unittest.TestCase):
     def tearDown(self):
         if hasattr(self, 'MACHINES'):
             for machine in self.MACHINES:
-                self.octo.delete_machine(machine)
+                self.octo.delete_machine(machine.id)
         if hasattr(self, 'RELEASE'):
-            self.octo.delete_release(self.RELEASE)
+            self.octo.delete_release(self.RELEASE.id)
 
         if self.octo.channel_exists(self.PROJECT_ID,
                                     channel_name=self.resource_command_context.reservation.reservation_id):
@@ -56,7 +56,7 @@ class OctopusDeployOrchestratorTest(unittest.TestCase):
                 self.octo.delete_lifecycle(lifecycle['Id'])
         if hasattr(self, 'ENVIRONMENTS'):
             for environment in self.ENVIRONMENTS:
-                self.octo.delete_environment(environment)
+                self.octo.delete_environment(environment.id)
 
     def delete_channel(self):
         channel = self.octo.find_channel_by_name_on_project(project_id=self.PROJECT_ID,
@@ -67,7 +67,7 @@ class OctopusDeployOrchestratorTest(unittest.TestCase):
         result = self.driver.create_environment(self.resource_command_context)
         env = EnvironmentSpec.from_dict(json.loads(result))
         self.ENVIRONMENTS.append(env)
-        self.assertTrue(self.octo.environment_exists(env))
+        self.assertTrue(self.octo.environment_exists(env.id))
 
     def _given_an_environment_exists(self, random_environment_id=None):
         if random_environment_id:
@@ -96,7 +96,7 @@ class OctopusDeployOrchestratorTest(unittest.TestCase):
     def _given_the_machine_is_also_associated_with_another_environment(self, machine):
         self.resource_command_context.reservation.reservation_id = str(uuid4())
         env = self._given_an_environment_exists()
-        self.octo.add_existing_machine_to_environment(machine.id, env.name)
+        self.octo.add_existing_machine_to_environment(machine.id, env.id)
         return env
 
     def test_add_existing_machine_to_environment_command(self):
@@ -120,16 +120,16 @@ class OctopusDeployOrchestratorTest(unittest.TestCase):
 
     def test_delete_environment(self):
         env = self._given_an_environment_exists()
-        self.assertTrue(self.octo.environment_exists(env))
+        self.assertTrue(self.octo.environment_exists(env.id))
         self.driver.delete_environment(self.resource_command_context)
         self.ENVIRONMENTS.remove(env)
-        self.assertFalse(self.octo.environment_exists(env))
+        self.assertFalse(self.octo.environment_exists(env.id))
 
     def test_create_lifecycle(self):
         env = self._given_an_environment_exists()
         lifecycle = self.driver.create_lifecycle(self.resource_command_context)
         self.LIFECYCLES.append(lifecycle)
-        self.assertTrue(self.octo.lifecycle_exists(lifecycle))
+        self.assertTrue(self.octo.lifecycle_exists(lifecycle['Id']))
 
     def _given_a_lifecycle_exists(self):
         self._given_a_machine_exists_on_an_environment()
@@ -139,10 +139,10 @@ class OctopusDeployOrchestratorTest(unittest.TestCase):
 
     def test_delete_lifecycle(self):
         lifecycle = self._given_a_lifecycle_exists()
-        self.assertTrue(self.octo.lifecycle_exists(lifecycle))
+        self.assertTrue(self.octo.lifecycle_exists(lifecycle['Id']))
         self.driver.delete_lifecycle(self.resource_command_context)
         self.LIFECYCLES.remove(lifecycle)
-        self.assertFalse(self.octo.lifecycle_exists(lifecycle))
+        self.assertFalse(self.octo.lifecycle_exists(lifecycle['Id']))
 
     def test_create_channel(self):
         self._given_a_lifecycle_exists()

@@ -91,7 +91,7 @@ class OctopusDeployOrchestratorDriver(ResourceDriverInterface):
         cloudshell = self._get_cloudshell_api(context)
         octo = self._get_octopus_server(context, cloudshell)
         release_spec = self._get_release_spec(context, octo, project_name)
-        octo.delete_release(release_spec)
+        octo.delete_release(release_spec.id)
 
     def _get_release_spec(self, context, octo, project_name):
         project = octo.find_project_by_name(project_name)
@@ -151,7 +151,7 @@ class OctopusDeployOrchestratorDriver(ResourceDriverInterface):
         octo = self._get_octopus_server(context, cloudshell)
         environment = self._get_deployed_environment_spec(self._get_environment_spec(context), octo)
         #lifecycle name == environment name == reservation id
-        return octo.create_lifecycle(environment.name, 'Cloudshell Sandbox Lifecycle', environment)
+        return octo.create_lifecycle(environment.name, 'Cloudshell Sandbox Lifecycle', environment.id)
 
     def _delete_lifecycle(self, context):
         cloudshell = self._get_cloudshell_api(context)
@@ -238,5 +238,5 @@ class OctopusDeployOrchestratorDriver(ResourceDriverInterface):
         octo = self._get_octopus_server(context, cloudshell)
         env = self._get_environment_spec(context)
         environment_id = octo.find_environment_by_name(env.name)['Id']
-        if octo.delete_environment_by_environment_id(environment_id):
+        if octo.delete_environment(environment_id):
             return 'Environment deleted'
