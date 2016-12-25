@@ -105,7 +105,8 @@ class OctopusDeployOrchestratorTest(unittest.TestCase):
 
         new_env = self._given_an_environment_exists(True)
         roles = 'MachineRole1'
-        self.driver.add_existing_machine_to_environment(self.resource_command_context, machine_name, roles, new_env.name)
+        self.driver.add_existing_machine_to_environment(self.resource_command_context, machine_name, roles,
+                                                        new_env.name)
         machine_id = self.octo.find_machine_by_name(machine_name)['Id']
         self.assertTrue(self.octo.machine_exists_on_environment(machine_id, new_env.id))
         self.octo.remove_existing_machine_from_environment(machine_id, new_env.id)
@@ -175,3 +176,13 @@ class OctopusDeployOrchestratorTest(unittest.TestCase):
         deployments = self.octo.get_entity(releases[0]['Links']['Deployments'].replace('{?skip}', ''))['Items']
         return deployments
 
+    def test_add_environment_to_optional_targets_of_lifecycle(self):
+        env = self._given_an_environment_exists()
+        phase_name = 'Test'
+        self.driver.add_environment_to_optional_targets_of_lifecycle(self.resource_command_context,
+                                                                     channel_name='SCA Demo', project_name=PROJECT_NAME,
+                                                                     phase_name=phase_name, environment_name=env.name)
+        phases = self.octo.get_entity('api/lifecycles/Lifecycles-140')['Phases']
+        modified_phase = (phase for phase in phases if phase['Name'] == phase_name).next()
+        self.assertTrue(env.id in modified_phase['OptionalDeploymentTargets'])
+        self.octo.remove_environment_from_lifecycle_on_phase(env.id, 'Lifecycles-140', phase_name)

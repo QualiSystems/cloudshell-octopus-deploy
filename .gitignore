@@ -95,3 +95,6 @@ ENV/
 /src/dist/
 /src/build/
 /src/cloudshell-orchestration-script/Default Sandbox Setup/cloudshell-orchestration-script.zip
+/src/cloudshell-orchestration-script/Default Sandbox Teardown/Default Sandbox Teardown.zip
+/src/cloudshell_drivers/octopus_deploy_orchestrator/octopus_deploy_orchestrator.zip
+/src/cloudshell-orchestration-script/Default Sandbox Setup/Default Sandbox Setup.zip

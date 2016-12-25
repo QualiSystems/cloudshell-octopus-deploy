@@ -25,7 +25,10 @@ class OctopusDeployOrchestratorDriver(ResourceDriverInterface):
         """
         pass
 
-    def add_existing_machine_to_environment(self, context, machine_name, machine_roles, environment_id):
+    def add_environment_to_optional_targets_of_lifecycle(self, project_name, channel_name, environment_name, phase_name):
+        return self._add_environment_to_optional_targets_of_lifecycle(project_name, channel_name, environment_name, phase_name)
+
+    def add_existing_machine_to_environment(self, context, machine_name, machine_roles, environment_name):
         """
         :param machine_name: the name of existing machine in Octopus Deploy
         :param machine_roles: a comma separated list of role names, must be at least one
@@ -35,7 +38,7 @@ class OctopusDeployOrchestratorDriver(ResourceDriverInterface):
         :type environment_id: str
         :param ResourceCommandContext context: the context the command runs on
         """
-        return self._add_existing_machine_to_environment(context, machine_name, machine_roles, environment_id)
+        return self._add_existing_machine_to_environment(context, machine_name, machine_roles, environment_name)
 
     def remove_existing_machine_from_environment(self, context, machine_name, environment_name):
         """
@@ -73,6 +76,34 @@ class OctopusDeployOrchestratorDriver(ResourceDriverInterface):
         """
         return self._delete_lifecycle(context)
 
+    def deploy_environment_to_release(self, context, project_name, release_version, environment_name):
+        cloudshell = self._get_cloudshell_api(context)
+        octo = self._get_octopus_server(context, cloudshell)
+        project = octo.find_project_by_name(project_name)
+        release = octo.get_release_by_version(project['Id'], release_version)
+        environment = octo.find_environment_by_name(environment_name)
+        octo.deploy_release(release['Id'], environment['Id'])
+        return 'Deployed {0} - {1} to {2}'.format(project_name, release_version, environment_name)
+
+    def add_environment_to_optional_targets_of_lifecycle(self, context, project_name, channel_name, environment_name, phase_name):
+        cloudshell = self._get_cloudshell_api(context)
+        octo = self._get_octopus_server(context, cloudshell)
+        project = octo.find_project_by_name(project_name)
+        channel = octo.find_channel_by_name_on_project(project['Id'], channel_name)
+        lifecycle_id = channel['LifecycleId']
+        environment = octo.find_environment_by_name(environment_name)
+        cloudshell.WriteMessageToReservationOutput(context.reservation.reservation_id, ', '.join(dir(octo)))
+        octo.add_environment_to_lifecycle_on_phase(environment['Id'], lifecycle_id, phase_name)
+
+    def remove_environment_from_optional_targets_of_lifecycle(self, context, project_name, channel_name, environment_name, phase_name):
+        cloudshell = self._get_cloudshell_api(context)
+        octo = self._get_octopus_server(context, cloudshell)
+        project = octo.find_project_by_name(project_name)
+        channel = octo.find_channel_by_name_on_project(project['Id'], channel_name)
+        lifecycle_id = channel['LifecycleId']
+        environment = octo.find_environment_by_name(environment_name)
+        octo.remove_environment_from_lifecycle_on_phase(environment['Id'], lifecycle_id, phase_name)
+
     def create_and_deploy_release(self, context, project_name):
         return self._create_and_deploy_release(context, project_name)
 
@@ -93,10 +124,10 @@ class OctopusDeployOrchestratorDriver(ResourceDriverInterface):
         release_spec = self._get_release_spec(context, octo, project_name)
         octo.delete_release(release_spec.id)
 
-    def _get_release_spec(self, context, octo, project_name):
+    def _get_release_spec(self, context, octo, project_name, channel_name=None):
+        channel_name = channel_name or context.reservation.reservation_id
         project = octo.find_project_by_name(project_name)
-        channel = octo.find_channel_by_name_on_project(project_id=project['Id'],
-                                             channel_name=context.reservation.reservation_id)
+        channel = octo.find_channel_by_name_on_project(project_id=project['Id'], channel_name=channel_name)
         # octopus deploy release version - "You can also use the letter i to increment part of the last release"
         release_spec = ReleaseSpec(project['Id'], version='1.i', release_notes='Cloudshell Release', channel_id=channel['Id'])
         return release_spec

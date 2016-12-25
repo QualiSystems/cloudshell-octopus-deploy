@@ -85,33 +85,41 @@ class EnvironmentSetup(object):
         :return:
         """
 
+        octopus_service = self._get_octopus_service(reservation_details)
+        if not octopus_service: return
+
+        res_id = reservation_details.ReservationDescription.Id
+
+        inputs = {input.ParamName: input.Value for input in api.GetReservationInputs(res_id).GlobalInputs}
+
+        project_name = InputNameValue('project_name', inputs['Project Name'])
+        channel_name = InputNameValue('channel_name', inputs['Channel Name'])
+        release_version = InputNameValue('release_version', inputs['Release Version'])
+        phase_name = InputNameValue('phase_name', inputs['Phase Name'])
+
+        machine_name = InputNameValue('machine_name', oct.DEMO_MACHINE_NAME)
+        machine_roles = InputNameValue('machine_roles', oct.DEMO_MACHINE_ROLES)
+        environment_name = InputNameValue('environment_name', res_id)
+
+        api.ExecuteCommand(res_id, octopus_service, SERVICE_TARGET_TYPE, oct.CREATE_ENVIRONMENT, [])
+        api.ExecuteCommand(res_id, octopus_service, SERVICE_TARGET_TYPE, oct.ADD_MACHINE,
+                           [machine_name, machine_roles, environment_name])
+
+        api.ExecuteCommand(res_id, octopus_service, SERVICE_TARGET_TYPE, oct.ADD_ENVIRONMENT_TO_LIFECYCLE_COMMAND,
+                           [project_name, channel_name, environment_name, phase_name])
+        api.ExecuteCommand(res_id, octopus_service, SERVICE_TARGET_TYPE, oct.DEPLOY_RELEASE_COMMAND, [project_name, release_version, environment_name])
+
+        api.WriteMessageToReservationOutput(res_id, 'Deployment to Octopus completed')
+
+    def _get_octopus_service(self, reservation_details):
         # check if octopus service in blueprint, if not ignore this
         for service in reservation_details.ReservationDescription.Services:
             if service.ServiceName == OCTOPUS_ORCHESTRATOR_SERVICE_NAME:
                 octopus_service = service.Alias
                 break
         else:
-            return
-
-        res_id = reservation_details.ReservationDescription.Id
-
-        project_name = InputNameValue('project_name', oct.DEMO_PROJECT_NAME)
-        machine_name = InputNameValue('machine_name', oct.DEMO_MACHINE_NAME)
-        machine_roles = InputNameValue('machine_roles', oct.DEMO_MACHINE_ROLES)
-        environment_name = InputNameValue('environment_id', res_id)
-
-        service_commands = [command.Name for command in api.GetServiceCommands(OCTOPUS_ORCHESTRATOR_SERVICE_NAME).Commands]
-
-        api.WriteMessageToReservationOutput(res_id, 'Commands on service are {0}'.format(', '.join(service_commands)))
-
-        api.ExecuteCommand(res_id, octopus_service, SERVICE_TARGET_TYPE, oct.CREATE_ENVIRONMENT, [])
-        api.ExecuteCommand(res_id, octopus_service, SERVICE_TARGET_TYPE, oct.ADD_MACHINE,
-                           [machine_name, machine_roles, environment_name])
-        api.ExecuteCommand(res_id, octopus_service, SERVICE_TARGET_TYPE, oct.CREATE_LIFECYCLE, [])
-        api.ExecuteCommand(res_id, octopus_service, SERVICE_TARGET_TYPE, oct.CREATE_CHANNEL, [project_name])
-        api.ExecuteCommand(res_id, octopus_service, SERVICE_TARGET_TYPE, oct.CREATE_RELEASE, [project_name])
-
-        api.WriteMessageToReservationOutput(res_id, 'Deployment to Octopus completed')
+            return None
+        return octopus_service
 
     def _deploy_cloud_provider_services(self, api, reservation_details):
         cloud_provider = self._get_cloud_provider_from_azure_apps(reservation_details)

@@ -59,8 +59,12 @@ class EnvironmentTeardown:
             return
 
         res_id = reservation_details.ReservationDescription.Id
+        inputs = {input.ParamName: input.Value for input in api.GetReservationInputs(res_id).GlobalInputs}
 
-        project_name = InputNameValue('project_name', oct.DEMO_PROJECT_NAME)
+        project_name = InputNameValue('project_name', inputs['Project Name'])
+        channel_name = InputNameValue('channel_name', inputs['Channel Name'])
+        phase_name = InputNameValue('phase_name', inputs['Phase Name'])
+
         machine_name = InputNameValue('machine_name', oct.DEMO_MACHINE_NAME)
         environment_name = InputNameValue('environment_name', res_id)
 
@@ -68,8 +72,8 @@ class EnvironmentTeardown:
 
         api.WriteMessageToReservationOutput(res_id, 'Commands on service are {0}'.format(', '.join(service_commands)))
 
-        api.ExecuteCommand(res_id, octopus_service, SERVICE_TARGET_TYPE, oct.DELETE_CHANNEL, [project_name])
-        api.ExecuteCommand(res_id, octopus_service, SERVICE_TARGET_TYPE, oct.DELETE_LIFECYCLE, [])
+        api.ExecuteCommand(res_id, octopus_service, SERVICE_TARGET_TYPE, oct.REMOVE_ENV_FROM_LIFECYCLE,
+                           [project_name, channel_name, environment_name, phase_name])
         api.ExecuteCommand(res_id, octopus_service, SERVICE_TARGET_TYPE, oct.REMOVE_MACHINE,
                            [machine_name, environment_name])
         api.ExecuteCommand(res_id, octopus_service, SERVICE_TARGET_TYPE, oct.DELETE_ENVIRONMENT, [])

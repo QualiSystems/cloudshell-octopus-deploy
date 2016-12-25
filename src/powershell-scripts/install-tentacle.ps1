@@ -1,6 +1,6 @@
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 Invoke-WebRequest -Uri http://octopusdeploy.com/downloads/latest/OctopusTentacle64 -OutFile c:\OctopusTentacle_x64.msi
-msiexec /i Octopus.Tentacle.<version>.msi /quiet
+msiexec /i OctopusTentacle_x64.msi /quiet
 cd "C:\Program Files\Octopus Deploy\Tentacle"
 
 .\Tentacle.exe create-instance --instance "Tentacle" --config "C:\Octopus\Tentacle\Tentacle.config" --console

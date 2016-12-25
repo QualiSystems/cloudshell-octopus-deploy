@@ -28,14 +28,35 @@
             <Command Description="..." Name="add_existing_machine_to_environment" DisplayName="Add Existing Machine To Environment">
                 <Parameters>
                     <Parameter Name="machine_name" DisplayName="Machine Name" Type="String" Mandatory="True" DefaultValue=""/>
-                    <Parameter Name="environment_name" DisplayName="Environment Name" Type="String" Mandatory="True" DefaultValue=""/>
                     <Parameter Name="machine_roles" DisplayName="Machine Roles" Type="String" Mandatory="False" DefaultValue=""/>
+                    <Parameter Name="environment_name" DisplayName="Environment Name" Type="String" Mandatory="True" DefaultValue=""/>
                 </Parameters>
             </Command>
             <Command Description="..." Name="remove_existing_machine_from_environment" DisplayName="Remove Existing Machine From Environment">
                 <Parameters>
                     <Parameter Name="machine_name" DisplayName="Machine Name" Type="String" Mandatory="True" DefaultValue=""/>
                     <Parameter Name="environment_name" DisplayName="Environment Name" Type="String" Mandatory="True" DefaultValue=""/>
+                </Parameters>
+            </Command>
+            <Command Description="..." Name="add_environment_to_optional_targets_of_lifecycle" DisplayName="Add Environment To Optional Targets Of Lifecycle">
+                <Parameters>
+                    <Parameter Name="project_name" DisplayName="Project Name" Type="String" Mandatory="True" DefaultValue=""/>
+                    <Parameter Name="environment_name" DisplayName="Environment Name" Type="String" Mandatory="True" DefaultValue=""/>
+                    <Parameter Name="channel_name" DisplayName="Channel Name" Type="String" Mandatory="True" DefaultValue=""/>
+                    <Parameter Name="phase_name" DisplayName="Phase Name" Type="String" Mandatory="True" DefaultValue=""/>
+                </Parameters>
+            </Command>
+            <Command Description="..." Name="remove_environment_from_optional_targets_of_lifecycle" DisplayName="Remove Environment From Optional Targets Of Lifecycle">
+                <Parameters>
+                    <Parameter Name="project_name" DisplayName="Project Name" Type="String" Mandatory="True" DefaultValue=""/>
+                    <Parameter Name="channel_name" DisplayName="Channel Name" Type="String" Mandatory="True" DefaultValue=""/>
+                    <Parameter Name="environment_name" DisplayName="Environment Name" Type="String" Mandatory="True" DefaultValue=""/>
+                </Parameters>
+            </Command>
+            <Command Description="..." Name="deploy_environment_to_release" DisplayName="Deploy Environment To Release">
+                <Parameters>
+                    <Parameter Name="project_name" DisplayName="Project Name" Type="String" Mandatory="True" DefaultValue=""/>
+                    <Parameter Name="release_version" DisplayName="Release Version" Type="String" Mandatory="True" DefaultValue=""/>
                 </Parameters>
             </Command>
     </Layout>
