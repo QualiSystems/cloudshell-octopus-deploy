@@ -9,7 +9,7 @@ Start-Transcript -Path "c:\tentacle-transcript.txt"
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 Invoke-WebRequest -Uri http://octopusdeploy.com/downloads/latest/OctopusTentacle64 -OutFile c:\OctopusTentacle_x64.msi
 cd c:\
-msiexec /i OctopusTentacle_x64.msi /quiet
+msiexec /i OctopusTentacle_x64.msi /quiet | Out-Null
 
 & 'C:\Program Files\Octopus Deploy\Tentacle\Tentacle.exe' create-instance --instance "Tentacle" --config "C:\Octopus\Tentacle\Tentacle.config" --console
 & 'C:\Program Files\Octopus Deploy\Tentacle\Tentacle.exe' new-certificate --instance "Tentacle" --console
