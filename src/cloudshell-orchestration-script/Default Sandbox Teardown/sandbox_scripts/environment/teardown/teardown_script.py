@@ -65,20 +65,16 @@ class EnvironmentTeardown:
         channel_name = InputNameValue('channel_name', inputs['Channel Name'])
         phase_name = InputNameValue('phase_name', inputs['Phase Name'])
 
-        machine_name = InputNameValue('machine_name', oct.DEMO_MACHINE_NAME)
         environment_name = InputNameValue('environment_name', res_id)
 
-        service_commands = [command.Name for command in api.GetServiceCommands(OCTOPUS_ORCHESTRATOR_SERVICE_NAME).Commands]
+        try:
+            api.ExecuteCommand(res_id, octopus_service, SERVICE_TARGET_TYPE, oct.REMOVE_ENV_FROM_LIFECYCLE,
+                               [project_name, channel_name, environment_name, phase_name])
+            api.ExecuteCommand(res_id, octopus_service, SERVICE_TARGET_TYPE, oct.DELETE_ENVIRONMENT, [])
 
-        api.WriteMessageToReservationOutput(res_id, 'Commands on service are {0}'.format(', '.join(service_commands)))
-
-        api.ExecuteCommand(res_id, octopus_service, SERVICE_TARGET_TYPE, oct.REMOVE_ENV_FROM_LIFECYCLE,
-                           [project_name, channel_name, environment_name, phase_name])
-        api.ExecuteCommand(res_id, octopus_service, SERVICE_TARGET_TYPE, oct.REMOVE_MACHINE,
-                           [machine_name, environment_name])
-        api.ExecuteCommand(res_id, octopus_service, SERVICE_TARGET_TYPE, oct.DELETE_ENVIRONMENT, [])
-
-        api.WriteMessageToReservationOutput(res_id, 'Cleaned Up Deployment To Octopus')
+            api.WriteMessageToReservationOutput(res_id, 'Cleaned Up Deployment To Octopus')
+        except:
+            return
 
     def _disconnect_all_routes_in_reservation(self, api, reservation_details):
         connectors = reservation_details.ReservationDescription.Connectors

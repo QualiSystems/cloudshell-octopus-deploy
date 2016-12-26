@@ -50,8 +50,14 @@ class EnvironmentSetup(object):
 
         self._deploy_cloud_provider_services(api, reservation_details)
 
+        environment_parameters_for_octopus_apps = self._create_octopus_environment(reservation_details, api)
+
+        api.WriteMessageToReservationOutput(self.reservation_id, 'Octopus parameters are: {0}'
+                                            .format(environment_parameters_for_octopus_apps))
+
         deploy_result = self._deploy_apps_in_reservation(api=api,
-                                                         reservation_details=reservation_details)
+                                                         reservation_details=reservation_details,
+                                                         octopus_app_params=environment_parameters_for_octopus_apps)
 
         self._try_exeucte_autoload(api=api,
                                    deploy_result=deploy_result,
@@ -76,46 +82,46 @@ class EnvironmentSetup(object):
         api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
                                             message='Reservation setup finished successfully')
 
-        self._setup_octopus(reservation_details, api)
+        self._deploy_sandbox_to_octopus(reservation_details, api)
 
-    def _setup_octopus(self, reservation_details, api):
-        """
-
-        :type api: cloudshell.api.cloudshell_api.CloudShellAPISession
-        :return:
-        """
-
-        octopus_service = self._get_octopus_service(reservation_details)
+    def _deploy_sandbox_to_octopus(self, reservation_details, api):
+        octopus_service = self._get_octopus_service(reservation_details).Alias
         if not octopus_service: return
 
         res_id = reservation_details.ReservationDescription.Id
-
         inputs = {input.ParamName: input.Value for input in api.GetReservationInputs(res_id).GlobalInputs}
-
         project_name = InputNameValue('project_name', inputs['Project Name'])
         channel_name = InputNameValue('channel_name', inputs['Channel Name'])
         release_version = InputNameValue('release_version', inputs['Release Version'])
         phase_name = InputNameValue('phase_name', inputs['Phase Name'])
-
-        machine_name = InputNameValue('machine_name', oct.DEMO_MACHINE_NAME)
-        machine_roles = InputNameValue('machine_roles', oct.DEMO_MACHINE_ROLES)
         environment_name = InputNameValue('environment_name', res_id)
-
-        api.ExecuteCommand(res_id, octopus_service, SERVICE_TARGET_TYPE, oct.CREATE_ENVIRONMENT, [])
-        api.ExecuteCommand(res_id, octopus_service, SERVICE_TARGET_TYPE, oct.ADD_MACHINE,
-                           [machine_name, machine_roles, environment_name])
 
         api.ExecuteCommand(res_id, octopus_service, SERVICE_TARGET_TYPE, oct.ADD_ENVIRONMENT_TO_LIFECYCLE_COMMAND,
                            [project_name, channel_name, environment_name, phase_name])
-        api.ExecuteCommand(res_id, octopus_service, SERVICE_TARGET_TYPE, oct.DEPLOY_RELEASE_COMMAND, [project_name, release_version, environment_name])
+        api.ExecuteCommand(res_id, octopus_service, SERVICE_TARGET_TYPE, oct.DEPLOY_RELEASE_COMMAND,
+                           [project_name, release_version, environment_name])
 
         api.WriteMessageToReservationOutput(res_id, 'Deployment to Octopus completed')
+
+    def _create_octopus_environment(self, reservation_details, api):
+        octopus_service = self._get_octopus_service(reservation_details)
+        if not octopus_service: return
+        res_id = reservation_details.ReservationDescription.Id
+        api.ExecuteCommand(res_id, octopus_service.Alias, SERVICE_TARGET_TYPE, oct.CREATE_ENVIRONMENT, [])
+        octopus_deploy_name = (attr.Value for attr in octopus_service.Attributes if
+                               attr.Name == 'Octopus Deploy Provider').next()
+        octopus_deploy = api.GetResourceDetails(octopus_deploy_name)
+        api_key = (attr.Value for attr in octopus_deploy.ResourceAttributes if attr.Name == 'API Key').next()
+        environment_parameters_for_octopus_apps = '{0} {1} {2}'.format(octopus_deploy.Address, api_key, res_id)
+
+        api.WriteMessageToReservationOutput(res_id, 'Created to Octopus environment')
+        return environment_parameters_for_octopus_apps
 
     def _get_octopus_service(self, reservation_details):
         # check if octopus service in blueprint, if not ignore this
         for service in reservation_details.ReservationDescription.Services:
             if service.ServiceName == OCTOPUS_ORCHESTRATOR_SERVICE_NAME:
-                octopus_service = service.Alias
+                octopus_service = service
                 break
         else:
             return None
@@ -246,13 +252,15 @@ class EnvironmentSetup(object):
                                                     message='Discovery failed on "{0}": {1}'
                                                     .format(deployed_app_name, exc.message))
 
-    def _deploy_apps_in_reservation(self, api, reservation_details):
+    def _deploy_apps_in_reservation(self, api, reservation_details, octopus_app_params):
         apps = reservation_details.ReservationDescription.Apps
         if not apps or (len(apps) == 1 and not apps[0].Name):
             self.logger.info("No apps found in reservation {0}".format(self.reservation_id))
             api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
                                                 message='No apps to deploy')
             return None
+
+        self.update_octopus_apps(api, apps, octopus_app_params)
 
         app_names = map(lambda x: x.Name, apps)
         app_inputs = map(lambda x: DeployAppInput(x.Name, "Name", x.Name), apps)
@@ -265,6 +273,25 @@ class EnvironmentSetup(object):
         res = api.DeployAppToCloudProviderBulk(self.reservation_id, app_names, app_inputs)
 
         return res
+
+    def update_octopus_apps(self, api, apps, octopus_app_params):
+        change_requests = []
+        for app in apps:
+            try:
+                dp = (path for path in app.DeploymentPaths if path.IsDefault).next()
+                api.WriteMessageToReservationOutput(self.reservation_id, 'Found app {0}'.format(app.Name))
+            except:
+                continue
+            attributes = {attr.Name: attr.Value for attr in dp.DeploymentService.Attributes}
+            if 'Extension Script file' in attributes and 'octopus' in attributes['Extension Script file']:
+                api.WriteMessageToReservationOutput(self.reservation_id, 'It is an Octopus Deploy app...')
+                change_request = self._get_change_request_app_attribute_value(app.Name,
+                                                                              'Azure - ' + dp.DeploymentService.Model,
+                                                                              'Extension Script Configurations',
+                                                                              octopus_app_params)
+                change_requests.append(change_request)
+        if change_requests:
+            api.EditAppsInReservation(self.reservation_id, change_requests)
 
     def _connect_all_routes_in_reservation(self, api, reservation_details, reservation_id, resource_details_cache):
         """
@@ -477,3 +504,11 @@ class EnvironmentSetup(object):
         else:
             self.logger.info("Auto Power On is off for deployed app {0} in reservation {1}"
                              .format(deployed_app_name, self.reservation_id))
+
+    def _get_change_request_app_attribute_value(self, app_name, deploy_model, attr_name, attr_value):
+        change_request = ApiEditAppRequest(app_name, app_name, '', None,
+                                           {'Name': deploy_model,
+                                            'Deployment': {
+                                               'Attributes': [{'Name': attr_name, 'Value': attr_value}]},
+                                            'Installation': None})
+        return change_request

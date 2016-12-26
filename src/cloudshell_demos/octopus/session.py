@@ -174,10 +174,21 @@ class OctopusServer:
         return deployment_result
 
     def delete_environment(self, environment_id):
+        self._delete_machines_associated_with_environment(environment_id)
         api_url = urljoin(self.host, '/api/environments/{0}'.format(environment_id))
         result = requests.delete(api_url, params=self.rest_params)
         self._valid_status_code(result, 'Error during delete environment: {0}'.format(result.text))
         return True
+
+    def _delete_machines_associated_with_environment(self, environment_id):
+        environment_machines_url = urljoin(self.host, 'api/environments/{0}/machines'.format(environment_id))
+        while True:
+            result = requests.get(environment_machines_url, params=self.rest_params)
+            environment_machines = json.loads(result.content)
+            if not environment_machines['Items']:
+                break
+            for machine in environment_machines['Items']:
+                self.delete_machine(machine['Id'])
 
     def delete_machine(self, machine_id):
         if not self.machine_exists(machine_id):
