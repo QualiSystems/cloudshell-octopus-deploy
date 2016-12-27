@@ -1,7 +1,8 @@
 Param(
 [string]$OCTOPUS_SERVER,
 [string]$API_KEY,
-[string]$ENVIRONMENT_NAME
+[string]$ENVIRONMENT_NAME,
+[string]$ROLE
 )
 
 Start-Transcript -Path "c:\tentacle-transcript.txt"
@@ -20,7 +21,7 @@ msiexec /i OctopusTentacle_x64.msi /quiet | Out-Null
 $a= curl -UseBasicParsing 'https://api.ipify.org'
 
 netsh advfirewall firewall add rule "name=Octopus Deploy Tentacle" dir=in action=allow protocol=TCP localport=10933
-& 'C:\Program Files\Octopus Deploy\Tentacle\Tentacle.exe' register-with --instance "Tentacle" --server "$OCTOPUS_SERVER" --apiKey="$API_KEY" --role "web-server" --environment "$ENVIRONMENT_NAME" --publicHostName="$a" --comms-style TentaclePassive --console
+& 'C:\Program Files\Octopus Deploy\Tentacle\Tentacle.exe' register-with --instance "Tentacle" --server "$OCTOPUS_SERVER" --apiKey="$API_KEY" --role "$ROLE" --environment "$ENVIRONMENT_NAME" --publicHostName="$a" --comms-style TentaclePassive --console
 & 'C:\Program Files\Octopus Deploy\Tentacle\Tentacle.exe' service --instance "Tentacle" --install --start --console
 
 Stop-Transcript
