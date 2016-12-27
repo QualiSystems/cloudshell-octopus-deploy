@@ -285,6 +285,8 @@ class EnvironmentSetup(object):
             attributes = {attr.Name: attr.Value for attr in dp.DeploymentService.Attributes}
             if 'Extension Script file' in attributes and 'octopus' in attributes['Extension Script file']:
                 api.WriteMessageToReservationOutput(self.reservation_id, 'It is an Octopus Deploy app...')
+                octopus_app_params = octopus_app_params if 'Octopus Role' not in attributes \
+                    else octopus_app_params + ' ' + attributes['Octopus Role']
                 change_request = self._get_change_request_app_attribute_value(app.Name,
                                                                               'Azure - ' + dp.DeploymentService.Model,
                                                                               'Extension Script Configurations',
