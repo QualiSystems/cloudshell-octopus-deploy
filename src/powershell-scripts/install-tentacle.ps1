@@ -17,7 +17,7 @@ msiexec /i OctopusTentacle_x64.msi /quiet | Out-Null
 & 'C:\Program Files\Octopus Deploy\Tentacle\Tentacle.exe' configure --instance "Tentacle" --app "C:\Octopus\Applications" --console
 & 'C:\Program Files\Octopus Deploy\Tentacle\Tentacle.exe' configure --instance "Tentacle" --port "10933" --console
 
-$a= curl 'https://api.ipify.org'
+$a= curl -UseBasicParsing 'https://api.ipify.org'
 
 netsh advfirewall firewall add rule "name=Octopus Deploy Tentacle" dir=in action=allow protocol=TCP localport=10933
 & 'C:\Program Files\Octopus Deploy\Tentacle\Tentacle.exe' register-with --instance "Tentacle" --server "$OCTOPUS_SERVER" --apiKey="$API_KEY" --role "web-server" --environment "$ENVIRONMENT_NAME" --publicHostName="$a" --comms-style TentaclePassive --console
