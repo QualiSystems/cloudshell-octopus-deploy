@@ -10,13 +10,13 @@ def get_file_content(file_name):
 
 setup(
     name='cloudshell-octopus-deploy',
-    version='3.0.2',
+    version='4.0.2',
     description="Orchestrate Octopus Deploy releases through Cloudshell",
     long_description="Orchestrate Octopus Deploy releases through Cloudshell",
     author="Nahum Timerman",
     author_email='ntimerman@gmail.com',
     url='https://github.com/QualiSystems/cloudshell-octopus-deploy',
-    packages=['cloudshell_demos', 'cloudshell_demos.octopus'],
+    packages=['cloudshell', 'cloudshell.octopus'],
     package_data={'': 'requirements.txt'},
     include_package_data=True,
     install_requires=get_file_content('requirements.txt'),

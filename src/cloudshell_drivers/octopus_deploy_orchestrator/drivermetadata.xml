@@ -1,8 +1,16 @@
 <Driver Description="Describe the purpose of your CloudShell shell" MainClass="driver.OctopusDeployOrchestratorDriver" Name="CloudshellAzureMediaServicesDriver" Version="1.0.0">
     <Layout>
         <!--<Category Name="Hidden Commands">-->
-            <Command Description="..." Name="create_environment" DisplayName="Create Octopus Environment" />
-            <Command Description="..." Name="delete_environment" DisplayName="Delete Octopus Environment" />
+            <Command Description="..." Name="create_environment" DisplayName="Create Octopus Environment">
+                <Parameters>
+                    <Parameter Name="environment_name" DisplayName="Environment Name" Type="String" Mandatory="True" DefaultValue=""/>
+                </Parameters>
+            </Command>
+            <Command Description="..." Name="delete_environment" DisplayName="Delete Octopus Environment">
+                <Parameters>
+                    <Parameter Name="environment_name" DisplayName="Environment Name" Type="String" Mandatory="True" DefaultValue=""/>
+                </Parameters>
+            </Command>
             <Command Description="..." Name="create_lifecycle" DisplayName="Create Octopus Lifecycle" />
             <Command Description="..." Name="delete_lifecycle" DisplayName="Delete Octopus Lifecycle" />
             <Command Description="..." Name="create_channel" DisplayName="Create Octopus Channel">

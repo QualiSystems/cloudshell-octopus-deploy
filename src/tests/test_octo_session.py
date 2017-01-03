@@ -1,9 +1,9 @@
 import unittest
 from random import randint
-from cloudshell_demos.octopus.session import OctopusServer
-from cloudshell_demos.octopus.environment_spec import EnvironmentSpec
-from cloudshell_demos.octopus.machine_spec import MachineSpec
-from cloudshell_demos.octopus.release_spec import ReleaseSpec
+from cloudshell.octopus.session import OctopusServer
+from cloudshell.octopus.environment_spec import EnvironmentSpec
+from cloudshell.octopus.machine_spec import MachineSpec
+from cloudshell.octopus.release_spec import ReleaseSpec
 from context import OCTOPUS_HOST, OCTOPUS_API_KEY, TENTACLE_SERVER, THUMBPRINT, PROJECT_ID
 
 

@@ -1,4 +1,4 @@
-from cloudshell_demos.octopus.environment_spec import EnvironmentSpec
+from cloudshell.octopus.environment_spec import EnvironmentSpec
 import requests
 import json
 from urlparse import urljoin
@@ -33,7 +33,7 @@ class OctopusServer:
 
     def create_environment(self, environment_spec):
         """
-        :type environment_spec: cloudshell_demos.octopus.environment_spec.EnvironmentSpec
+        :type environment_spec: cloudshell.octopus.environment_spec.EnvironmentSpec
         :return:
         """
         env = copy.deepcopy(environment_spec)
@@ -56,7 +56,7 @@ class OctopusServer:
 
     def create_machine(self, machine_spec):
         """
-        :type machine_spec: cloudshell_demos.octopus.machine_spec.MachineSpec
+        :type machine_spec: cloudshell.octopus.machine_spec.MachineSpec
         :return:
         """
         self._validate_tentacle_uri(machine_spec.uri)
@@ -68,7 +68,7 @@ class OctopusServer:
 
     def create_release(self, release_spec):
         """
-        :type release_spec: cloudshell_demos.octopus.release_spec.ReleaseSpec
+        :type release_spec: cloudshell.octopus.release_spec.ReleaseSpec
         :return:
         """
         api_url = urljoin(self.host, '/api/releases')

@@ -50,7 +50,9 @@ class EnvironmentSetup(object):
 
         self._deploy_cloud_provider_services(api, reservation_details)
 
-        environment_parameters_for_octopus_apps = self._create_octopus_environment(reservation_details, api)
+        octo_environment_name = self._get_octopus_environment_name(reservation_details)
+        environment_parameters_for_octopus_apps = self._create_octopus_environment(reservation_details, api,
+                                                                                   octo_environment_name)
 
         api.WriteMessageToReservationOutput(self.reservation_id, 'Octopus parameters are: {0}'
                                             .format(environment_parameters_for_octopus_apps))
@@ -82,9 +84,9 @@ class EnvironmentSetup(object):
         api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
                                             message='Reservation setup finished successfully')
 
-        self._deploy_sandbox_to_octopus(reservation_details, api)
+        self._deploy_sandbox_to_octopus(reservation_details, api, octo_environment_name)
 
-    def _deploy_sandbox_to_octopus(self, reservation_details, api):
+    def _deploy_sandbox_to_octopus(self, reservation_details, api, octopus_environment_name):
         octopus_service = self._get_octopus_service(reservation_details).Alias
         if not octopus_service: return
 
@@ -94,7 +96,7 @@ class EnvironmentSetup(object):
         channel_name = InputNameValue('channel_name', inputs['Channel Name'])
         release_version = InputNameValue('release_version', inputs['Release Version'])
         phase_name = InputNameValue('phase_name', inputs['Phase Name'])
-        environment_name = InputNameValue('environment_name', res_id)
+        environment_name = InputNameValue('environment_name', octopus_environment_name)
 
         api.ExecuteCommand(res_id, octopus_service, SERVICE_TARGET_TYPE, oct.ADD_ENVIRONMENT_TO_LIFECYCLE_COMMAND,
                            [project_name, channel_name, environment_name, phase_name])
@@ -103,19 +105,35 @@ class EnvironmentSetup(object):
 
         api.WriteMessageToReservationOutput(res_id, 'Deployment to Octopus completed')
 
-    def _create_octopus_environment(self, reservation_details, api):
+    def _create_octopus_environment(self, reservation_details, api, octopus_environment_name):
         octopus_service = self._get_octopus_service(reservation_details)
         if not octopus_service: return
         res_id = reservation_details.ReservationDescription.Id
-        api.ExecuteCommand(res_id, octopus_service.Alias, SERVICE_TARGET_TYPE, oct.CREATE_ENVIRONMENT, [])
+        environment_name = octopus_environment_name
+
+        api.ExecuteCommand(res_id, octopus_service.Alias, SERVICE_TARGET_TYPE, oct.CREATE_ENVIRONMENT,
+                           [InputNameValue('environment_name', environment_name)])
         octopus_deploy_name = (attr.Value for attr in octopus_service.Attributes if
                                attr.Name == 'Octopus Deploy Provider').next()
         octopus_deploy = api.GetResourceDetails(octopus_deploy_name)
         api_key = (attr.Value for attr in octopus_deploy.ResourceAttributes if attr.Name == 'API Key').next()
-        environment_parameters_for_octopus_apps = '{0} {1} {2}'.format(octopus_deploy.Address, api_key, res_id)
+        environment_parameters_for_octopus_apps = '{0} {1} "{2}"'.format(octopus_deploy.Address, api_key,
+                                                                         environment_name)
 
         api.WriteMessageToReservationOutput(res_id, 'Created to Octopus environment')
         return environment_parameters_for_octopus_apps
+
+    def _get_octopus_environment_name(self, reservation_details):
+        environment_name = '{0} - {1}'.format(reservation_details.ReservationDescription.Name,
+                                              reservation_details.ReservationDescription.Id)
+        environment_name = self._cut_long_env_name(environment_name)
+        return environment_name
+
+    def _cut_long_env_name(self, environment_name):
+        over_length = len(environment_name) - 50
+        if over_length > 0:
+            environment_name = environment_name[over_length:]
+        return environment_name
 
     def _get_octopus_service(self, reservation_details):
         # check if octopus service in blueprint, if not ignore this
@@ -140,10 +158,12 @@ class EnvironmentSetup(object):
                     deploy_commands.append((api.ExecuteCommand, (reservation_details.ReservationDescription.Id,
                                                                  service.Alias, SERVICE_TARGET_TYPE, DEPLOY_COMMAND,
                                                                  [InputNameValue(CLOUD_PROVIDER_ATTR,
-                                                                                 cloud_provider)])))
+                                                                                 service_attributes[
+                                                                                     AZURE_RESOURCE_ATTR])])))
 
                 if PROFILE_NAME_ATTR in service_attributes.keys():
-                    self.create_profile(api, cdn_profiles, cloud_provider, reservation_details, service,
+                    self.create_profile(api, cdn_profiles, service_attributes[AZURE_RESOURCE_ATTR], reservation_details,
+                                        service,
                                         service_attributes)
 
             for deploy_command in deploy_commands:
@@ -285,12 +305,12 @@ class EnvironmentSetup(object):
             attributes = {attr.Name: attr.Value for attr in dp.DeploymentService.Attributes}
             if 'Extension Script file' in attributes and 'octopus' in attributes['Extension Script file']:
                 api.WriteMessageToReservationOutput(self.reservation_id, 'It is an Octopus Deploy app...')
-                octopus_app_params = octopus_app_params if 'Octopus Role' not in attributes \
+                extension_script_params = octopus_app_params if 'Octopus Role' not in attributes \
                     else octopus_app_params + ' ' + attributes['Octopus Role']
                 change_request = self._get_change_request_app_attribute_value(app.Name,
                                                                               'Azure - ' + dp.DeploymentService.Model,
                                                                               'Extension Script Configurations',
-                                                                              octopus_app_params)
+                                                                              extension_script_params)
                 change_requests.append(change_request)
         if change_requests:
             api.EditAppsInReservation(self.reservation_id, change_requests)
@@ -508,9 +528,8 @@ class EnvironmentSetup(object):
                              .format(deployed_app_name, self.reservation_id))
 
     def _get_change_request_app_attribute_value(self, app_name, deploy_model, attr_name, attr_value):
+        deployment = Deployment(Attributes=[{'Name': attr_name, 'Value': attr_value}])
+        default_deployment = DefaultDeployment(Deployment=deployment, Installation=None, Name=deploy_model)
         change_request = ApiEditAppRequest(app_name, app_name, '', None,
-                                           {'Name': deploy_model,
-                                            'Deployment': {
-                                               'Attributes': [{'Name': attr_name, 'Value': attr_value}]},
-                                            'Installation': None})
+                                           default_deployment)
         return change_request

@@ -4,9 +4,9 @@ from context import OCTOPUS_HOST, OCTOPUS_API_KEY, TENTACLE_SERVER, THUMBPRINT, 
 from cloudshell.api.cloudshell_api import CloudShellAPISession
 from cloudshell_drivers.octopus_deploy_orchestrator.driver import OctopusDeployOrchestratorDriver, \
     OCTOPUS_DEPLOY_PROVIDER
-from cloudshell_demos.octopus.session import OctopusServer
-from cloudshell_demos.octopus.environment_spec import EnvironmentSpec
-from cloudshell_demos.octopus.machine_spec import MachineSpec
+from cloudshell.octopus.session import OctopusServer
+from cloudshell.octopus.environment_spec import EnvironmentSpec
+from cloudshell.octopus.machine_spec import MachineSpec
 import json
 
 

@@ -28,7 +28,8 @@ class EnvironmentTeardown:
         api = helpers.get_api_session()
         reservation_details = api.GetReservationDetails(self.reservation_id)
 
-        self._cleanup_octopus(reservation_details, api)
+        octo_environment_name = self._get_octopus_environment_name(reservation_details)
+        self._cleanup_octopus(reservation_details, api, octo_environment_name)
 
         api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
                                             message='Beginning reservation teardown')
@@ -43,7 +44,7 @@ class EnvironmentTeardown:
         api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
                                             message='Reservation teardown finished successfully')
 
-    def _cleanup_octopus(self, reservation_details, api):
+    def _cleanup_octopus(self, reservation_details, api, environment_name):
         """
 
         :type api: cloudshell.api.cloudshell_api.CloudShellAPISession
@@ -65,12 +66,12 @@ class EnvironmentTeardown:
         channel_name = InputNameValue('channel_name', inputs['Channel Name'])
         phase_name = InputNameValue('phase_name', inputs['Phase Name'])
 
-        environment_name = InputNameValue('environment_name', res_id)
+        environment_name = InputNameValue('environment_name', environment_name)
 
         try:
             api.ExecuteCommand(res_id, octopus_service, SERVICE_TARGET_TYPE, oct.REMOVE_ENV_FROM_LIFECYCLE,
                                [project_name, channel_name, environment_name, phase_name])
-            api.ExecuteCommand(res_id, octopus_service, SERVICE_TARGET_TYPE, oct.DELETE_ENVIRONMENT, [])
+            api.ExecuteCommand(res_id, octopus_service, SERVICE_TARGET_TYPE, oct.DELETE_ENVIRONMENT, [environment_name])
 
             api.WriteMessageToReservationOutput(res_id, 'Cleaned Up Deployment To Octopus')
         except:
@@ -225,3 +226,15 @@ class EnvironmentTeardown:
         api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
                                             message='Cleaning-up connectivity')
         api.CleanupSandboxConnectivity(reservation_id)
+
+    def _get_octopus_environment_name(self, reservation_details):
+        environment_name = '{0} - {1}'.format(reservation_details.ReservationDescription.Name,
+                                              reservation_details.ReservationDescription.Id)
+        environment_name = self._cut_long_env_name(environment_name)
+        return environment_name
+
+    def _cut_long_env_name(self, environment_name):
+        over_length = len(environment_name) - 50
+        if over_length > 0:
+            environment_name = environment_name[over_length:]
+        return environment_name
