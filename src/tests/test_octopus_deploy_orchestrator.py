@@ -186,3 +186,6 @@ class OctopusDeployOrchestratorTest(unittest.TestCase):
         modified_phase = (phase for phase in phases if phase['Name'] == phase_name).next()
         self.assertTrue(env.id in modified_phase['OptionalDeploymentTargets'])
         self.octo.remove_environment_from_lifecycle_on_phase(env.id, 'Lifecycles-140', phase_name)
+
+    def test_upgrade_environment_to_version(self):
+        env = self._given_an_environment_exists()

@@ -144,15 +144,26 @@ class OctopusServer:
         lifecycle = json.loads(result.content)
         return lifecycle
 
-    def get_release_by_version(self, project_id, release_version):
-        api_url = urljoin(self.host, '/api/projects/{0}/releases/{1}'.format(project_id, release_version))
+    def get_release_by_id(self, project_id, release_id):
+        api_url = urljoin(self.host, '/api/releases/{0}'.format(release_id))
         result = requests.get(api_url, params=self.rest_params)
         self._valid_status_code(result,
-                                'Failed to find release {0} on project {1}\n Error: {2}'.format(project_id,
-                                                                                                release_version,
+                                'Failed to find release {0} on project {1}\n Error: {2}'.format(release_id,
+                                                                                                project_id,
                                                                                                 result.text))
         release = json.loads(result.content)
         return release
+
+    def get_latest_channel_release(self, channel_id):
+        api_url = urljoin(self.host, '/api/channels/{0}/releases'.format(channel_id))
+        result = requests.get(api_url, params=self.rest_params)
+        self._valid_status_code(result, 'Failed to get channel releases; error: {0}'.format(result.text))
+        releases = json.loads(result.content)
+        if not releases:
+            raise Exception('No releases found on this channel')
+        # releases are always ordered from most recent to oldest
+        # https://github.com/OctopusDeploy/OctopusDeploy-Api/wiki/Releases
+        return releases['Items'][0]
 
     def deploy_release(self, release_id, environment_id):
         """

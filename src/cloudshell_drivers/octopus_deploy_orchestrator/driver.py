@@ -80,10 +80,18 @@ class OctopusDeployOrchestratorDriver(ResourceDriverInterface):
         cloudshell = self._get_cloudshell_api(context)
         octo = self._get_octopus_server(context, cloudshell)
         project = octo.find_project_by_name(project_name)
-        release = octo.get_release_by_version(project['Id'], release_version)
+        release = octo.get_release_by_id(project['Id'], release_version)
         environment = octo.find_environment_by_name(environment_name)
         octo.deploy_release(release['Id'], environment['Id'])
-        return 'Deployed {0} - {1} to {2}'.format(project_name, release_version, environment_name)
+        return 'Deployed {0} - {1} to {2}'.format(project_name, release['Version'], environment_name)
+
+    def get_channel_latest_release_version_name(self, context, project_name, channel_name):
+        cloudshell = self._get_cloudshell_api(context)
+        octo = self._get_octopus_server(context, cloudshell)
+        project = octo.find_project_by_name(project_name)
+        channel = octo.find_channel_by_name_on_project(project['Id'], channel_name)
+        release = octo.get_latest_channel_release(channel['Id'])
+        return str(release['Id']) # strip quotes
 
     def add_environment_to_optional_targets_of_lifecycle(self, context, project_name, channel_name, environment_name, phase_name):
         cloudshell = self._get_cloudshell_api(context)

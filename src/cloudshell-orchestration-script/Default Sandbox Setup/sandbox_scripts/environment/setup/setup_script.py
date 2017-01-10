@@ -307,10 +307,10 @@ class EnvironmentSetup(object):
                 api.WriteMessageToReservationOutput(self.reservation_id, 'It is an Octopus Deploy app...')
                 extension_script_params = octopus_app_params if 'Octopus Role' not in attributes \
                     else octopus_app_params + ' ' + attributes['Octopus Role']
-                change_request = self._get_change_request_app_attribute_value(app.Name,
-                                                                              'Azure - ' + dp.DeploymentService.Model,
-                                                                              'Extension Script Configurations',
-                                                                              extension_script_params)
+                change_request = self._get_change_request_app_attribute_value_7_2(app.Name,
+                                                                                  'Azure - ' + dp.DeploymentService.Model,
+                                                                                  'Extension Script Configurations',
+                                                                                  extension_script_params)
                 change_requests.append(change_request)
         if change_requests:
             api.EditAppsInReservation(self.reservation_id, change_requests)
@@ -527,9 +527,15 @@ class EnvironmentSetup(object):
             self.logger.info("Auto Power On is off for deployed app {0} in reservation {1}"
                              .format(deployed_app_name, self.reservation_id))
 
-    def _get_change_request_app_attribute_value(self, app_name, deploy_model, attr_name, attr_value):
+    def _get_change_request_app_attribute_value_7_1(self, app_name, deploy_model, attr_name, attr_value):
         deployment = Deployment(Attributes=[{'Name': attr_name, 'Value': attr_value}])
         default_deployment = DefaultDeployment(Deployment=deployment, Installation=None, Name=deploy_model)
         change_request = ApiEditAppRequest(app_name, app_name, '', None,
                                            default_deployment)
+        return change_request
+
+    def _get_change_request_app_attribute_value_7_2(self, app_name, deploy_model, attr_name, attr_value):
+        deployment = {'Attributes': [{'Name': attr_name, 'Value': attr_value}]}
+        default_deployment = {'Deployment': deployment, 'Installation': None, 'Name': deploy_model}
+        change_request = ApiEditAppRequest(app_name, app_name, '', None, default_deployment)
         return change_request
