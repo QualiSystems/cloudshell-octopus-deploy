@@ -528,7 +528,7 @@ class EnvironmentSetup(object):
                              .format(deployed_app_name, self.reservation_id))
 
     def _get_change_request_app_attribute_value_7_1(self, app_name, deploy_model, attr_name, attr_value):
-        deployment = Deployment(Attributes=[{'Name': attr_name, 'Value': attr_value}])
+        deployment = Deployment(Attributes=[NameValuePair(Name=attr_name, Value=attr_value)])
         default_deployment = DefaultDeployment(Deployment=deployment, Installation=None, Name=deploy_model)
         change_request = ApiEditAppRequest(app_name, app_name, '', None,
                                            default_deployment)

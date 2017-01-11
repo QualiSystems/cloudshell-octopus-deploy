@@ -1,10 +1,12 @@
 import unittest
-from random import randint
-from cloudshell.octopus.session import OctopusServer
+
 from cloudshell.octopus.environment_spec import EnvironmentSpec
 from cloudshell.octopus.machine_spec import MachineSpec
 from cloudshell.octopus.release_spec import ReleaseSpec
+from cloudshell.octopus.session import OctopusServer
+
 from context import OCTOPUS_HOST, OCTOPUS_API_KEY, TENTACLE_SERVER, THUMBPRINT, PROJECT_ID
+from random import randint
 
 
 class OctopusDeployTest(unittest.TestCase):

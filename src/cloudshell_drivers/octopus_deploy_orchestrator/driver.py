@@ -80,7 +80,7 @@ class OctopusDeployOrchestratorDriver(ResourceDriverInterface):
         cloudshell = self._get_cloudshell_api(context)
         octo = self._get_octopus_server(context, cloudshell)
         project = octo.find_project_by_name(project_name)
-        release = octo.get_release_by_id(project['Id'], release_version)
+        release = octo.get_release_by_version_name(project['Id'], release_version)
         environment = octo.find_environment_by_name(environment_name)
         octo.deploy_release(release['Id'], environment['Id'])
         return 'Deployed {0} - {1} to {2}'.format(project_name, release['Version'], environment_name)
