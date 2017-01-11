@@ -68,7 +68,7 @@
     <ScriptDescriptor Name="Default Sandbox Teardown" CategoryName="Hidden Commands" Version="1.0.1614 " Alias="Teardown script">
       <ScriptInputs />
     </ScriptDescriptor>
-    <ScriptDescriptor Name="Octopus Update To Latest" CategoryName="Commands" Version="1.0.1614 " Alias="Octopus Update To Version">
+    <ScriptDescriptor Name="Octopus Update To Version" CategoryName="Commands" Version="1.0.1614 " Alias="Octopus Update To Version">
       <ScriptInputs />
     </ScriptDescriptor>
   </ScriptDescriptors>
