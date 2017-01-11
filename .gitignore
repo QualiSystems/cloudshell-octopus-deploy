@@ -99,3 +99,4 @@ ENV/
 /src/cloudshell_drivers/octopus_deploy_orchestrator/octopus_deploy_orchestrator.zip
 /src/cloudshell-orchestration-script/Default Sandbox Setup/Default Sandbox Setup.zip
 /src/tests/manual_testing.py
+/src/tests/random.py
