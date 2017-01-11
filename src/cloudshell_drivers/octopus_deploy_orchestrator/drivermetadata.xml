@@ -73,5 +73,11 @@
                     <Parameter Name="channel_name" DisplayName="Channel Name" Type="String" Mandatory="True" DefaultValue=""/>
                 </Parameters>
             </Command>
+            <Command Description="..." Name="get_release_by_version_name" DisplayName="Get Release By Version Name">
+                <Parameters>
+                    <Parameter Name="project_name" DisplayName="Project Name" Type="String" Mandatory="True" DefaultValue=""/>
+                    <Parameter Name="version_name" DisplayName="Version Name" Type="String" Mandatory="True" DefaultValue=""/>
+                </Parameters>
+            </Command>
     </Layout>
 </Driver>

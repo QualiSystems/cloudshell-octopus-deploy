@@ -5,6 +5,7 @@ import octopus_constants as oct
 
 SERVICE_TARGET_TYPE = 'Service'
 GET_LATEST_CHANNEL_RELEASE = 'get_channel_latest_release_version_name'
+GET_RELEASE_BY_VERSION_NAME = 'get_release_by_version_name'
 OCTOPUS_ORCHESTRATOR_SERVICE_NAME = 'Octopus Deploy Orchestrator'
 
 
@@ -29,12 +30,14 @@ class EnvironmentSetup(object):
 
         version_name = helpers.get_user_param('Version')
         if version_name.lower() == 'latest':
-            version_name = self.get_latest_release_version_id(api, inputs, octopus_service.Alias, res_id)
+            version_id = self.get_latest_release_version_id(api, inputs, octopus_service.Alias, res_id)
+        else:
+            version_id = self.get_release_id_by_version_name(api, inputs, octopus_service.Alias, res_id, version_name)
 
         octo_environment_name = self._get_octopus_environment_name(reservation_details)
 
         if version_name:
-            self._deploy_sandbox_to_octopus(res_id, octopus_service.Alias, inputs, api, octo_environment_name, version_name)
+            self._deploy_sandbox_to_octopus(res_id, octopus_service.Alias, inputs, api, octo_environment_name, version_id)
 
     def get_latest_release_version_id(self, api, inputs, octopus_service, res_id):
         project_name = InputNameValue('project_name', inputs['Project Name'])
@@ -42,6 +45,13 @@ class EnvironmentSetup(object):
         # api.WriteMessageToReservationOutput(res_id, '\n'.join([octopus_service, GET_LATEST_CHANNEL_RELEASE, project_name, channel_name]))
         version_id = api.ExecuteCommand(res_id, octopus_service, SERVICE_TARGET_TYPE, GET_LATEST_CHANNEL_RELEASE,
                                           [project_name, channel_name]).Output
+        return version_id
+
+    def get_release_id_by_version_name(self, api, inputs, octopus_service, res_id, version_name):
+        project_input = InputNameValue('project_name', inputs['Project Name'])
+        version_input = InputNameValue('version_name', version_name)
+        version_id = api.ExecuteCommand(res_id, octopus_service, SERVICE_TARGET_TYPE, GET_RELEASE_BY_VERSION_NAME,
+                                          [project_input, version_input]).Output
         return version_id
 
     def _deploy_sandbox_to_octopus(self, res_id, octopus_service, inputs, api, octopus_environment_name, version_id):

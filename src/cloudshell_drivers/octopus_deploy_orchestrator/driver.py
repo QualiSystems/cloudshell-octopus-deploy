@@ -91,6 +91,13 @@ class OctopusDeployOrchestratorDriver(ResourceDriverInterface):
         project = octo.find_project_by_name(project_name)
         channel = octo.find_channel_by_name_on_project(project['Id'], channel_name)
         release = octo.get_latest_channel_release(channel['Id'])
+        return str(release['Id'])
+
+    def get_release_by_version_name(self, context, project_name, version_name):
+        cloudshell = self._get_cloudshell_api(context)
+        octo = self._get_octopus_server(context, cloudshell)
+        project = octo.find_project_by_name(project_name)
+        release = octo.get_release_by_version_name(project['Id'], version_name)
         return str(release['Id']) # strip quotes
 
     def add_environment_to_optional_targets_of_lifecycle(self, context, project_name, channel_name, environment_name, phase_name):

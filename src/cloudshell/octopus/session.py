@@ -165,6 +165,13 @@ class OctopusServer:
         # https://github.com/OctopusDeploy/OctopusDeploy-Api/wiki/Releases
         return releases['Items'][0]
 
+    def get_release_by_version_name(self, project_id, version_name):
+        api_url = urljoin(self.host, '/api/projects/{0}/releases/{1}'.format(project_id, version_name))
+        result = requests.get(api_url, params=self.rest_params)
+        self._valid_status_code(result, 'Failed to get release named {1}; error: {0}'.format(result.text, version_name))
+        release = json.loads(result.content)
+        return release
+
     def deploy_release(self, release_id, environment_id):
         """
         :param release_id: str
