@@ -24,6 +24,7 @@ netsh advfirewall firewall add rule "name=Octopus Deploy Tentacle" dir=in action
 & 'C:\Program Files\Octopus Deploy\Tentacle\Tentacle.exe' register-with --instance "Tentacle" --server "$OCTOPUS_SERVER" --apiKey="$API_KEY" --role "$ROLE" --environment "$ENVIRONMENT_NAME" --publicHostName="$a" --comms-style TentaclePassive --console
 & 'C:\Program Files\Octopus Deploy\Tentacle\Tentacle.exe' service --instance "Tentacle" --install --start --console
 
+import-module servermanager
 Add-WindowsFeature Web-Server –IncludeAllSubFeature
 
 netsh advfirewall firewall add rule "name=Web Server" dir=in action=allow protocol=TCP localport=81
