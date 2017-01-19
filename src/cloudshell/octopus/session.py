@@ -267,7 +267,7 @@ class OctopusServer:
                                 '\nError: {2}'.format(machine_id, environment_id, result.text))
         return json.loads(result.content)
 
-    def wait_till_deployment_completes(self, deployment_result, retries=10, wait_duration=60):
+    def wait_till_deployment_completes(self, deployment_result, retries=30, wait_duration=60):
         deployments = self._get_release_deployments(deployment_result)
 
         for deployment in deployments:
