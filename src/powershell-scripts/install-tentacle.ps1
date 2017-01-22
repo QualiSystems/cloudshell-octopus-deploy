@@ -24,12 +24,12 @@ netsh advfirewall firewall add rule "name=Octopus Deploy Tentacle" dir=in action
 & 'C:\Program Files\Octopus Deploy\Tentacle\Tentacle.exe' register-with --instance "Tentacle" --server "$OCTOPUS_SERVER" --apiKey="$API_KEY" --role "$ROLE" --environment "$ENVIRONMENT_NAME" --publicHostName="$a" --comms-style TentaclePassive --console
 & 'C:\Program Files\Octopus Deploy\Tentacle\Tentacle.exe' service --instance "Tentacle" --install --start --console
 
-netsh advfirewall firewall add rule "name=Web Server" dir=in action=allow protocol=TCP localport=81
+#netsh advfirewall firewall add rule "name=Web Server" dir=in action=allow protocol=TCP localport=81
 $enable_winrm_script_location = "https://raw.githubusercontent.com/QualiSystems/cloudshell-octopus-deploy/dev/src/powershell-scripts/ConfigureRemotingForAnsible.ps1"
 wget $enable_winrm_script_location -outfile "winrm.ps1"
 Powershell.exe -ExecutionPolicy Bypass -File winrm.ps1
 
-import-module servermanager
-Add-WindowsFeature Web-Server -IncludeAllSubFeature
+#import-module servermanager
+#Add-WindowsFeature Web-Server -IncludeAllSubFeature
 
 Stop-Transcript
