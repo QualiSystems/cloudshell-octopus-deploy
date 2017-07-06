@@ -1,6 +1,8 @@
 from cloudshell.api.cloudshell_api import CloudShellAPISession
 from cloudshell.shell.core.resource_driver_interface import ResourceDriverInterface
 from cloudshell.shell.core.driver_context import InitCommandContext, ResourceCommandContext
+
+from cloudshell.octopus.machine_spec import MachineSpec
 from cloudshell.octopus.session import OctopusServer
 from cloudshell.octopus.environment_spec import EnvironmentSpec
 from cloudshell.octopus.release_spec import ReleaseSpec
@@ -118,32 +120,30 @@ class OctopusDeployOrchestratorDriver(ResourceDriverInterface):
         environment = octo.find_environment_by_name(environment_name)
         octo.remove_environment_from_lifecycle_on_phase(environment['Id'], lifecycle_id, phase_name)
 
-    def create_and_deploy_release(self, context, project_name):
-        return self._create_and_deploy_release(context, project_name)
+    def create_release(self, context, project_name, version):
+        return self._create_release(context, project_name, version)
 
-    def delete_release(self, context, project_name):
-        return self._delete_release(context, project_name)
+    def delete_release(self, context, project_name, version):
+        return self._delete_release(context, project_name, version)
 
-    def _create_and_deploy_release(self, context, project_name):
+    def _create_release(self, context, project_name, version):
         cloudshell = self._get_cloudshell_api(context)
-        octo = self._get_octopus_server(context, cloudshell)
-        release_spec = self._get_release_spec(context, octo, project_name)
-        # environment_id = octo.find_environment_by_name(context.reservation.reservation_id)['Id']
+        octo = self._get_octopus_sebrver(context, cloudshell)
+        release_spec = self._get_release_spec(context, octo, project_name, version)
         octo.create_release(release_spec)
-        # octo.deploy_release(release_spec, environment_id)
 
-    def _delete_release(self, context, project_name):
+    def _delete_release(self, context, project_name, version):
         cloudshell = self._get_cloudshell_api(context)
         octo = self._get_octopus_server(context, cloudshell)
-        release_spec = self._get_release_spec(context, octo, project_name)
+        release_spec = self._get_release_spec(context, octo, project_name, version)
         octo.delete_release(release_spec.id)
 
-    def _get_release_spec(self, context, octo, project_name, channel_name=None):
+    def _get_release_spec(self, context, octo, project_name, release_Version, channel_name=None):
         channel_name = channel_name or context.reservation.reservation_id
         project = octo.find_project_by_name(project_name)
         channel = octo.find_channel_by_name_on_project(project_id=project['Id'], channel_name=channel_name)
         # octopus deploy release version - "You can also use the letter i to increment part of the last release"
-        release_spec = ReleaseSpec(project['Id'], version='1.i', release_notes='Cloudshell Release', channel_id=channel['Id'])
+        release_spec = ReleaseSpec(project['Id'], version=release_Version, release_notes='', channel_id=channel['Id'])
         return release_spec
 
     def create_channel(self, context, project_name):
@@ -179,9 +179,21 @@ class OctopusDeployOrchestratorDriver(ResourceDriverInterface):
         octo = self._get_octopus_server(context, cloudshell)
         project = octo.find_project_by_name(project_name)
         channel = octo.find_channel_by_name_on_project(project_id=project['Id'],
-                                             channel_name=context.reservation.reservation_id)
+                                                       channel_name=context.reservation.reservation_id)
         octo.delete_channel(channel['Id'])
         return 'Channel deleted'
+
+    def create_machine(self,context, machine_name, roles, address, port, environment_name):
+        self._create_machine(context, machine_name, roles, address, port, environment_name)
+
+    def _create_machine(self, context, machine_name, roles, address, port, environment_name):
+        cloudshell = self._get_cloudshell_api(context)
+        octo = self._get_octopus_server(context, cloudshell)
+        environment_id = octo.find_environment_by_name(environment_name)['Id']
+        machine_spec = MachineSpec(name=machine_name,is_disabled=False,roles=roles, status="Unknown",
+                                   uri= '{0}:{1}'.format(address,port), environment_ids=environment_id)
+        octo.create_machine(machine_spec)
+
 
     def _create_environment(self, context, environment_name):
         cloudshell = self._get_cloudshell_api(context)

@@ -8,6 +8,8 @@ import time
 import ssl
 import copy
 
+from cloudshell.octopus.machine_spec import MachineSpec
+
 VALIDATE_TENTACLE_CONTEXT = ssl._create_unverified_context()
 
 
@@ -65,6 +67,7 @@ class OctopusServer:
         self._valid_status_code(result, 'Failed to create machine; error: {0}'.format(result.text))
         machine_spec.set_id(json.loads(result.content)['Id'])
         return machine_spec
+
 
     def create_release(self, release_spec):
         """

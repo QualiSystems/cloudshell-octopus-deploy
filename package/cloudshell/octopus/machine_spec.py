@@ -2,7 +2,7 @@ import json
 
 
 class MachineSpec:
-    def __init__(self, name, roles, thumbprint, uri, environment_ids, tenant_ids=None):
+    def __init__(self, name, roles, thumbprint, uri, environment_ids, status, is_disabled, tenant_ids=None):
         """
         :type name: str
         :type roles: list[str]
@@ -18,6 +18,8 @@ class MachineSpec:
         self._thumbprint = thumbprint
         self._uri = uri
         self._environment_ids = environment_ids
+        self._status = status
+        self._is_disabled = is_disabled
 
     @property
     def name(self):
@@ -26,6 +28,11 @@ class MachineSpec:
     @property
     def roles(self):
         return self._roles
+
+    @property
+    def is_disabled(self):
+        return self._is_disabled
+
 
     @property
     def tenant_ids(self):
@@ -44,6 +51,10 @@ class MachineSpec:
         return self._environment_ids
 
     @property
+    def status(self):
+        return self._status
+
+    @property
     def json(self):
         machine_dict = dict()
         machine_dict['Name'] = self.name
@@ -55,6 +66,9 @@ class MachineSpec:
             'Uri': self.uri,
             'Thumbprint': self.thumbprint
         }
+        machine_dict['Status'] = self.status
+        machine_dict['IsDisabled'] = self.is_disabled
+
         return machine_dict
 
     def set_id(self, id):
