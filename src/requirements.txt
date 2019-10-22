@@ -1,2 +1,2 @@
-requests==2.11.1
+requests==2.20.0
 cloudshell-automation-api>=7.1.0,<7.2.0
